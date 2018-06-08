@@ -1,0 +1,14 @@
+image: python:3.6
+
+variables:
+  PIP_PROCESS_DEPENDENCY_LINKS: 1
+
+before_script:
+ - pip install -r dev-requirements.txt
+ - pip install -e .
+
+test:
+  variables:
+    DJANGO_SETTINGS_MODULE: tests.test_settings
+  script:
+    - python runtests.py
