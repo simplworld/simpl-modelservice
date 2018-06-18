@@ -31,7 +31,7 @@ setup(
         'Framework :: Django',
     ],
     install_requires=[
-        "simpl-authenticator==0.0.7",
+        "simpl-authenticator==0.0.8",
         "simpl_client==0.2.2",
         "genericclient-base==1.0.0",
         "Django==1.11.11",
