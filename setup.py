@@ -50,7 +50,7 @@ setup(
         "botocore==1.8.42",
     ],
     dependency_links=[
-        'https://7e1b08465a2c5d2ba410cad5559f02751278ba79@github.com/simplworld/simpl-authenticator/archive/v0.0.7.zip',
+        'https://7e1b08465a2c5d2ba410cad5559f02751278ba79@github.com/simplworld/simpl-authenticator/archive/v0.0.8.zip',
         'https://7e1b08465a2c5d2ba410cad5559f02751278ba79@github.com/simplworld/simpl-client/archive/v0.2.2.zip',
     ],
     test_suite='runtests',
