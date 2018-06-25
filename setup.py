@@ -37,7 +37,7 @@ setup(
         "Django==1.11.11",
         "djangorestframework==3.6.4",
         "aiorwlock",
-        "aiojobs==0.0.4",
+        "aiojobs==0.2.1",
         "attrs>=17.4.0",
         "autobahn==17.10.1",
         "click==6.7",
