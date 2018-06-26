@@ -139,8 +139,9 @@ class WampScope(ScopeMixin, SessionScope):
 
     async def remove(self, payload=None):
         """
-        Remove scope.
-        Also, notifies any associated World and Runusers.
+        Remove scope and notify any associated World and Runusers.
+        Subclasses that override this method can pass the payload argument to
+        an on_deleted hook.
         """
         self.log.debug('remove: {name} pk: {pk}',
                        name=self.resource_name, pk=self.pk)

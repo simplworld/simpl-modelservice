@@ -157,7 +157,7 @@ class RunUser(Scope):
             self.run.publish('remove_child', self.pk, self.resource_name,
                              self.json)
 
-        await super(RunUser, self).remove()
+        await super(RunUser, self).remove(payload)
 
     def update_webhook(self, resource_name, payload, **kwargs):
         self.log.debug('update_webhook: {name} pk: {pk}',
