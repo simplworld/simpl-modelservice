@@ -29,17 +29,6 @@ class CallbackDispatcher(object):
     def __init__(self, registry):
         self.registry = registry
 
-    async def forward_runuser(self, game, event, data):
-        # TODO eliminate RunUser special casing and treat like a Scope
-        resource_name = 'run'
-        pk = data['run']
-        action = event.rsplit('.', 1)[-1]
-        try:
-            scope = game.get_scope(resource_name, pk)
-            await getattr(scope, 'runuser_{}'.format(action))(payload=data)
-        except ScopeNotFound:
-            pass
-
     def dispatch(self, data):
         event = data['event']
         payload = data['data']
@@ -74,27 +63,26 @@ class CallbackDispatcher(object):
         else:
             _, resource_name, action = event.rsplit('.', 2)
 
-        # `User`s and `RunUser`s
-        # TODO eliminate RunUser special casing and treat like a Scope
-        if resource_name == 'user':
-            runusers = \
-                await games_client.runusers.filter(user=payload['id'],
-                                                   game_slug=game.slug)
-            for runuser in runusers:
-                await self.forward_runuser(game, event, runuser.payload)
-        elif resource_name == 'runuser':
-            await self.forward_runuser(game, event, payload)
+        # TODO figure out why we're not receiving user notifications and correct
+        # if resource_name == 'user':
+        #     if action == 'changed':
+        #         runusers = \
+        #             await games_client.runusers.filter(user=payload['id'],
+        #                                                game_slug=game.slug)
+        #         for runuser in runusers:
+        #             # update runuser scope user info: email, first_name, last_name
+        #             self.log.info('TODO use user payload: {user}'.format(user=payload))
+        #             self.log.info('to update runuser scope of resource: {runuser}'.format(runuser=runuser))
 
-        elif resource_name == 'game':
-            # TODO: the best thing to do here is to send a very loud message
-            # TODO: advising not to delete games and informing that the
-            # TODO: modelservice needs to be restarted
+        if resource_name == 'game':
+            # Send a very loud message advising not to delete games and
+            # stating the modelservice needs to be restarted
             game.log.error(
                 "Deleting games is not recommended. Please restart the modelservice for game `{game_slug}`",
                 game_slug=game.slug)
             return
 
-        # Scopes -- each scope instance has a single parent
+        # Scopes -- each scope instance has a single designated parent
         parent_resources = SCOPE_PARENT_GRAPH[resource_name]
         for parent_resource in parent_resources:
             parent_pk = payload[parent_resource]
@@ -103,7 +91,7 @@ class CallbackDispatcher(object):
 
             pk = payload['id']
 
-            # Make sure the parent had the time to be instantiantiated
+            # Make sure the parent had the time to be instantiated
             if action == 'created':
                 try:
                     if parent_resource == 'game':
@@ -125,7 +113,7 @@ class CallbackDispatcher(object):
             elif action == 'deleted':
                 try:
                     scope = game.get_scope(resource_name, pk)
-                    await scope.remove()
+                    await scope.remove(payload)
                 except ScopeNotFound:
                     log.debug(
                         "ScopeNotFound action:{action} pk:{pk} resource:{child} payload:{payload!r} not found in forward",
