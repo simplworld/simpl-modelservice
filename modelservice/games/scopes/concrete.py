@@ -144,6 +144,44 @@ class RunUser(Scope):
             return None
         return self.game.get_scope('role', self.json['role'])
 
+    async def remove(self, payload):
+        """
+        Call parent Run on_runuser_deleted, notify parent Run subscribers,
+        and remove scope.
+        """
+        self.log.debug('remove: {name} pk: {pk}',
+                       name=self.resource_name, pk=self.pk)
+
+        if self.run is not None:
+            await self.run.on_runuser_deleted(payload)
+            self.run.publish('remove_child', self.pk, self.resource_name,
+                             self.json)
+
+        await super(RunUser, self).remove()
+
+    def update_webhook(self, resource_name, payload, **kwargs):
+        self.log.debug('update_webhook: {name} pk: {pk}',
+                       name=self.resource_name, pk=self.pk)
+        # updating a RunUser may require updating its manager's 'world' index
+        world_changed = payload['world'] != self.json['world']
+        if world_changed:
+            self.game.scopes['runuser'].remove(self)
+        self.json = payload
+        if world_changed:
+            self.game.scopes['runuser'].add(self)
+        self.update_pubsub()
+
+    def update_pubsub(self):
+        """
+        Notify parent Run subscribers.
+        """
+        self.log.debug('update_pubsub: {name} pk: {pk}',
+                       name=self.resource_name, pk=self.pk, )
+
+        super(RunUser, self).update_pubsub()
+        self.run.publish(
+            'update_child', self.pk, self.resource_name, self.json)
+
 
 class Run(Scope):
     resource_name = 'run'
@@ -184,46 +222,6 @@ class Run(Scope):
         except IndexError:
             return None
 
-    async def add_or_update_runuser(self, payload) -> None:
-        # because RunUser parent is Run, moved from Game
-        # TODO eliminate and treat RunUser like a Scope
-        runuser_resource = Resource(self.games_client.runusers, **payload)
-        try:
-            runuser = self.game.get_scope('runuser', runuser_resource.pk)
-
-            self.game.scopes['runuser'].remove(runuser)  # TODO still needed?
-            runuser.json = runuser_resource.payload
-            self.game.scopes['runuser'].add(runuser)  # TODO still needed?
-
-            self.log.debug(
-                'add_or_update_runuser: {name} pk: {pk} updated runuser {id} json: {json!r}',
-                name=self.game.resource_name, pk=self.pk,
-                id=runuser_resource.pk, json=runuser.json)
-
-        except ScopeNotFound:
-            runuser = \
-                await self.game.runuser_class.create(
-                    self.session, self.game, runuser_resource.payload)
-
-            await self.game.add_scopes(runuser)
-
-            self.log.debug(
-                'add_or_update_runuser: {name} pk: {pk} added runuser {id}',
-                name=self.game.resource_name, pk=self.pk,
-                id=runuser_resource.pk)
-
-            scenario_resources = \
-                self.game.scopes['scenario'].filter(
-                    runuser=runuser_resource.pk)
-
-            ScenarioClass = self.game.scenario_class
-            scenarios = []
-            for scenario_resource in scenario_resources:
-                scenario = await ScenarioClass.create(
-                    self.game.session, self.game, scenario_resource.payload)
-                scenarios.append(scenario)
-            await self.game.add_scopes(*scenarios)
-
     async def on_runuser_deleted(self, payload):
         """
         Override this hook to provide custom behavior after deleting
@@ -238,50 +236,35 @@ class Run(Scope):
         """
         pass
 
-    @subscribe
-    async def runuser_deleted(self, payload, **kwargs):
+    async def add_child_scope(self, scope):
         """
-        A `RunUser` has been deleted from `Simpl-Games-API`
+        Push a scope instance into `child_scopes`.
+        If child is a runuser, call on_runuser_created.
+        Also, publish to Run topic subscribers.
         """
-        # TODO eliminate and treat RunUser like a Scope
         self.log.debug(
-            'Run.runuser_deleted: {name} pk: {pk} deleted runuser {id}',
-            name=self.resource_name, pk=self.pk, id=payload['id'])
+            'add_child_scope: parent {name} pk: {pk}, child {child} pk: {child_pk}',
+            name=self.resource_name,
+            pk=self.pk,
+            child=scope.resource_name,
+            child_pk=scope.pk,
+        )
 
-        runuser = self.game.get_scope('runuser', payload['id'])
-        await self.game.remove_scopes(runuser)
-        await self.on_runuser_deleted(payload)
+        await self.game.add_scopes(scope)
+        if scope.resource_name == 'runuser':
+            await self.on_runuser_created(scope.pk)
 
-    @subscribe
-    async def runuser_changed(self, payload, **kwargs):
-        """
-        A `RunUser` has been changed from `Simpl-Games-API`
-        """
-        # TODO eliminate and treat RunUser like a Scope
-        self.log.debug(
-            'Run.runuser_changed: {name} pk: {pk} updated runuser {id}',
-            name=self.resource_name, pk=self.pk, id=payload['id'])
-
-        await self.add_or_update_runuser(payload)
-
-    @subscribe
-    async def runuser_created(self, payload, **kwargs):
-        """
-        A `RunUser` has been created from `Simpl-Games-API`
-        """
-        # TODO eliminate and treat RunUser like a Scope
-
-        self.log.debug(
-            'Run.runuser_created: {name} pk: {pk} created runuser {id}',
-            name=self.resource_name, pk=self.pk, id=payload['id'])
-
-        await self.add_or_update_runuser(payload)
-        await self.on_runuser_created(payload['id'])
+        self.publish('add_child',
+                     scope.pk,
+                     scope.resource_name,
+                     scope.json)
 
     def update_pubsub(self):
         """
-        Propagate the run's update down to its worlds, so they can be notified
-        when the Run closes.
+        Propagate update down to child worlds and runusers, so they
+        are notified their parent Run has changed. This ensures players are
+        notified of phase changes, etc.
+        TODO How does publishing update_child when parent changes accomplish this?
         """
         super(Run, self).update_pubsub()
         for world in self.worlds:
