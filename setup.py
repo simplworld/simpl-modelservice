@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-VERSION = '0.0.5'
+VERSION = '0.0.6'
 
 f = open(os.path.join(os.path.dirname(__file__), 'README.md'))
 readme = f.read()
@@ -37,7 +37,7 @@ setup(
         "Django==1.11.11",
         "djangorestframework==3.6.4",
         "aiorwlock",
-        "aiojobs==0.0.5",
+        "aiojobs==0.0.6",
         "attrs>=17.4.0",
         "autobahn==17.10.1",
         "click==6.7",
