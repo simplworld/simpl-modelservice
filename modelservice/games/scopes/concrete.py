@@ -516,9 +516,9 @@ class Game(WampScope):
             if self.users_subscription is None:
                 try:
                     self.users_subscription = \
-                        await webhooks_subscribe(api_session, 'users')
+                        await webhooks_subscribe(api_session, 'user')
                     self.log.info('webhook registered for prefix `{prefix}.*`',
-                                  prefix='users')
+                                  prefix='user')
                 except SubscriptionAlreadyExists as exc:
                     pass
 
