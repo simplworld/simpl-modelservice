@@ -10,6 +10,8 @@ from .base import Registry, RegisterDecorator
 from .games.scopes.constants import SCOPE_PARENT_GRAPH
 from .games.scopes.exceptions import ScopeNotFound
 
+from .conf import LOAD_ACTIVE_RUNS
+
 log = Logger()
 
 
@@ -52,8 +54,8 @@ class CallbackDispatcher(object):
         payload = data['data']
         ref = data['ref']
 
-        log.info(
-            "Forward Event: {event} ref: {ref} payload:{payload!r}",
+        game.log.debug(
+            "Forward Event: {event} ref: {ref} payload: {payload!r}",
             event=event,
             ref=ref,
             payload=payload,
@@ -70,9 +72,10 @@ class CallbackDispatcher(object):
                 await games_client.runusers.filter(user=id,
                                                    game_slug=game.slug)
             for runuser in runusers:
+                # await self.forward_runuser(game, event, runuser.payload)
                 # update runuser scope user info: email, first_name, last_name
                 game.log.debug('publish update runuser scope with pk: {pk}',
-                              pk=runuser.pk)
+                               pk=runuser.pk)
                 scope = game.get_scope('runuser', runuser.pk)
                 # update monkey patched user properties
                 scope.json['email'] = runuser.email
@@ -95,6 +98,10 @@ class CallbackDispatcher(object):
             if parent_pk is None:
                 continue
 
+            if LOAD_ACTIVE_RUNS and parent_resource != 'game' \
+                    and payload['run_active'] is False:
+                return
+
             pk = payload['id']
 
             # Make sure the parent had the time to be instantiated
@@ -106,13 +113,12 @@ class CallbackDispatcher(object):
                         scope = game.get_scope(parent_resource, parent_pk)
                         await scope.add_child_webhook(resource_name, payload)
                 except ScopeNotFound:
-                    log.debug(
-                        "ScopeNotFound action:{action} parent:{parent} pk:{pk} child:{child} payload:{payload!r} not found in forward",
+                    game.log.debug(
+                        "ScopeNotFound action: {action} parent: {parent} pk: {pk} of child: {child} not found in forward",
                         action=action,
                         parent=parent_resource,
                         pk=parent_pk,
-                        child=resource_name,
-                        payload=payload,
+                        child=resource_name
                     )
                     return
 
@@ -121,27 +127,35 @@ class CallbackDispatcher(object):
                     scope = game.get_scope(resource_name, pk)
                     await scope.remove(payload)
                 except ScopeNotFound:
-                    log.debug(
-                        "ScopeNotFound action:{action} pk:{pk} resource:{child} payload:{payload!r} not found in forward",
+                    game.log.debug(
+                        "ScopeNotFound action: {action} pk: {pk} resource: {resource} not found in forward",
                         action=action,
-                        pk=parent_pk,
+                        pk=pk,
                         resource=resource_name,
-                        payload=payload,
                     )
                     return
 
             elif action == 'changed':
                 try:
                     scope = game.get_scope(resource_name, pk)
-                    scope.update_webhook(resource_name, payload)
+                    if LOAD_ACTIVE_RUNS and resource_name == 'run' \
+                            and payload['active'] is False:
+                        # remove run and its children from game's scopes
+                        await game.unload_inactive_run_scope_tree(scope)
+                    else:
+                        scope.update_webhook(resource_name, payload)
                 except ScopeNotFound:
-                    log.debug(
-                        "ScopeNotFound action:{action} pk:{pk} resource:{child} payload:{payload!r} not found in forward",
-                        action=action,
-                        pk=parent_pk,
-                        resource=resource_name,
-                        payload=payload,
-                    )
+                    if LOAD_ACTIVE_RUNS and resource_name == 'run' \
+                            and payload['active'] is True:
+                        # run has been reactivated and needs to be loaded
+                        await game.restore_run(pk)
+                    else:
+                        game.log.debug(
+                            "ScopeNotFound action: {action} pk: {pk} resource: {resource} not found in forward",
+                            action=action,
+                            pk=pk,
+                            resource=resource_name,
+                        )
                     return
 
 

@@ -315,6 +315,20 @@ class WampScope(ScopeMixin, SessionScope):
 
         return self._scope_tree(*args, **kwargs)
 
+    async def _unload_scope_tree(self):
+        """
+        Removes this scope and all its children from game's scopes.
+        """
+        self.log.debug('_unload_scope_tree: resource_name: {name} pk: {pk}',
+                       name=self.resource_name, pk=self.pk)
+
+        scope_groups = self.child_scopes
+        for resource_name, scope_group in scope_groups.items():
+            for scope in scope_group:
+                await scope._unload_scope_tree()
+
+        await self.my.game.remove_scopes(self)
+
     def pubsub_export(self):
         """
         Serializes the scope so it can be transmitted over pubsub and used by
