@@ -20,6 +20,8 @@ from ..registry import registry
 
 from ...webhooks import dispatcher
 
+from ...conf import LOAD_ACTIVE_RUNS
+
 
 class Result(Scope):
     resource_name = 'result'
@@ -411,10 +413,8 @@ class Game(WampScope):
         self.pk = await self.get_pk()
         await super(Game, self).start()
 
-    async def restore_endpoint(self, endpoint, scope_class):
-        # return a manager for endpoint's scopes
-
-        params = {'game_slug': self.slug}
+    async def _filter(self, endpoint, params):
+        # return consolidated query results
         results = []
         while True:
             resources = await endpoint.filter(**params)
@@ -426,6 +426,14 @@ class Game(WampScope):
                 # self.log.info('next url: {url}', url=endpoint.url)
             else:
                 break
+        return results
+
+    async def restore_endpoint(self, endpoint, scope_class, params={},
+                               parent_name=None, parent_ids=[]):
+        # return a manager for endpoint's scopes
+        params['game_slug'] = self.slug
+        self.log.debug("params: {params!s}", params=params)
+        results = await self._filter(endpoint, params)
 
         scopes = []
         for result in results:
@@ -449,12 +457,71 @@ class Game(WampScope):
                 scope_class=scope_class)
         return manager
 
-    async def restore(self):
-        # load all child scopes
+    async def restore_run(self, run_pk):
+        # load newly activated run and all its child scopes
+        run_scopes = []
         for endpoint_name, scope_class in self.endpoint_to_classes.items():
             endpoint = getattr(self.games_client, endpoint_name)
-            manager = await self.restore_endpoint(endpoint, scope_class)
-            self.scopes[scope_class.resource_name] = manager
+
+            if endpoint_name == 'phases' or endpoint_name == 'roles':
+                continue
+            elif endpoint_name == 'runs':
+                result = await endpoint.get(id=run_pk)
+                scope = await scope_class.create(self.session,
+                                                 game=self,
+                                                 json=result.payload)
+                self.scopes[scope_class.resource_name].append(scope)
+                run_scopes.append(scope)
+                self.log.debug('loaded activated run {pk}', pk=run_pk)
+            else:
+                manager = \
+                    await self.restore_endpoint(endpoint,
+                                                scope_class,
+                                                params={'run': run_pk})
+                scope_class_manager = self.scopes[scope_class.resource_name]
+                for scope in manager:
+                    scope_class_manager.append(scope)
+                    run_scopes.append(scope)
+                self.log.debug('loaded all {len} {children} of activated run',
+                               len=len(manager), children=endpoint_name)
+
+        for scope in run_scopes:
+            await scope.start()
+
+        self.log.info('Started {total} scopes of activated run',
+                      total=len(run_scopes))
+
+    async def restore(self):
+        # load all child scopes
+        if LOAD_ACTIVE_RUNS:
+            for endpoint_name, scope_class in self.endpoint_to_classes.items():
+                endpoint = getattr(self.games_client, endpoint_name)
+
+                if endpoint_name == 'phases' or endpoint_name == 'roles':
+                    manager = await self.restore_endpoint(endpoint,
+                                                          scope_class)
+                    self.scopes[scope_class.resource_name] = manager
+                elif endpoint_name == 'runs':
+                    manager = \
+                        await self.restore_endpoint(endpoint,
+                                                    scope_class,
+                                                    params={'active': True})
+                    self.scopes[scope_class.resource_name] = manager
+                    self.log.debug('loaded all active runs')
+                else:
+                    manager = \
+                        await self.restore_endpoint(endpoint,
+                                                    scope_class,
+                                                    params={
+                                                        'run_active': True})
+                    self.scopes[scope_class.resource_name] = manager
+                    self.log.debug('loaded all {children} of active runs',
+                                   children=endpoint_name)
+        else:
+            for endpoint_name, scope_class in self.endpoint_to_classes.items():
+                endpoint = getattr(self.games_client, endpoint_name)
+                manager = await self.restore_endpoint(endpoint, scope_class)
+                self.scopes[scope_class.resource_name] = manager
 
         # start scopes
         scopes = []
@@ -473,6 +540,13 @@ class Game(WampScope):
                     self.log.info('Starting scopes {progress!r}%...',
                                   progress=int_progress)
             await scope.start()
+
+    async def unload_inactive_run_scope_tree(self, run):
+        """
+        Unloads the run and its children without publishing delete notifications
+        """
+        self.log.info('unload_inactive_run_scope_tree: pk: {pk}', pk=run.pk)
+        await run._unload_scope_tree()
 
     async def get_pk(self):
         json = await self.storage.load(slug=self.slug)
@@ -516,9 +590,9 @@ class Game(WampScope):
             if self.users_subscription is None:
                 try:
                     self.users_subscription = \
-                        await webhooks_subscribe(api_session, 'users')
+                        await webhooks_subscribe(api_session, 'user')
                     self.log.info('webhook registered for prefix `{prefix}.*`',
-                                  prefix='users')
+                                  prefix='user')
                 except SubscriptionAlreadyExists as exc:
                     pass
 
@@ -583,8 +657,8 @@ class Game(WampScope):
         cls.resource_classes = resource_classes_map
 
         cls.endpoint_to_classes = OrderedDict([
-            ('roles', cls.resource_classes['role']),
             ('phases', cls.resource_classes['phase']),
+            ('roles', cls.resource_classes['role']),
             ('runs', cls.resource_classes['run']),
             ('runusers', cls.resource_classes['runuser']),
             ('worlds', cls.resource_classes['world']),
