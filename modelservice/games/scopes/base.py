@@ -143,16 +143,23 @@ class WampScope(ScopeMixin, SessionScope):
         Subclasses that override this method can pass the payload argument to
         an on_deleted hook.
         """
-        self.log.debug('remove: {name} pk: {pk}',
+        self.log.info('remove: {name} pk: {pk}',
                        name=self.resource_name, pk=self.pk)
+        try:
+            if self.my.world is not None:
+                self.my.world.publish('remove_child', self.pk, self.resource_name,
+                                      self.json)
+        except ValueError as ex:
+            self.log.debug('{e!s}', e=ex)
+            pass
 
-        if self.my.world is not None:
-            self.my.world.publish('remove_child', self.pk, self.resource_name,
-                                  self.json)
-
-        for runuser in self.my.runusers:
-            runuser.publish('remove_child', self.pk, self.resource_name,
-                            self.json)
+        try:
+            for runuser in self.my.runusers:
+                runuser.publish('remove_child', self.pk, self.resource_name,
+                                self.json)
+        except ValueError as ex:
+            self.log.debug('{e!s}', e=ex)
+            pass
 
         await self.my.game.remove_scopes(self)
 
