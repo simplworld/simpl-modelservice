@@ -66,22 +66,23 @@ class CallbackDispatcher(object):
         else:
             _, resource_name, action = event.rsplit('.', 2)
 
-        if resource_name == 'user' and action == 'changed':
-            id = payload['id']
-            runusers = \
-                await games_client.runusers.filter(user=id,
-                                                   game_slug=game.slug)
-            for runuser in runusers:
-                # await self.forward_runuser(game, event, runuser.payload)
-                # update runuser scope user info: email, first_name, last_name
-                game.log.debug('publish update runuser scope with pk: {pk}',
-                               pk=runuser.pk)
-                scope = game.get_scope('runuser', runuser.pk)
-                # update monkey patched user properties
-                scope.json['email'] = runuser.email
-                scope.json['first_name'] = runuser.first_name
-                scope.json['last_name'] = runuser.last_name
-                scope.update_pubsub()
+        if resource_name == 'user':
+            if action == 'changed':
+                id = payload['id']
+                runusers = \
+                    await games_client.runusers.filter(user=id,
+                                                       game_slug=game.slug)
+                for runuser in runusers:
+                    # await self.forward_runuser(game, event, runuser.payload)
+                    # update runuser scope user info: email, first_name, last_name
+                    game.log.debug('publish update runuser scope with pk: {pk}',
+                                   pk=runuser.pk)
+                    scope = game.get_scope('runuser', runuser.pk)
+                    # update monkey patched user properties
+                    scope.json['email'] = runuser.email
+                    scope.json['first_name'] = runuser.first_name
+                    scope.json['last_name'] = runuser.last_name
+                    scope.update_pubsub()
             return
         elif resource_name == 'game':
             # Send a very loud message advising not to delete games and
