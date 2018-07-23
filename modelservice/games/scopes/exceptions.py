@@ -10,6 +10,10 @@ class ScopeNotFound(Exception):
     pass
 
 
+class ParentScopeNotFound(ScopeNotFound):
+    pass
+
+
 class MultipleScopesFound(Exception):
     pass
 

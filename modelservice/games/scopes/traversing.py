@@ -2,7 +2,7 @@ from typing import Dict
 
 from django.utils.functional import cached_property
 
-from .exceptions import ScopeNotFound
+from .exceptions import ScopeNotFound, ParentScopeNotFound
 from .managers import ScopeManager
 
 
@@ -31,7 +31,7 @@ class Traversing(object):
         try:
             return self.game.get_scope(parent_resource, parent_pk)
         except ScopeNotFound:
-            raise ValueError("Can't find scope {} {}, parent of {} {}".format(
+            raise ParentScopeNotFound("Can't find scope {} {}, parent of {} {}".format(
                 parent_resource, parent_pk,
                 self.resource_name,
                 self.scope.pk,

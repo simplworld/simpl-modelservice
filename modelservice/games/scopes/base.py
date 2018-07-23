@@ -8,7 +8,7 @@ from modelservice import conf
 from modelservice.utils.functional import classproperty
 
 from .constants import SCOPE_PARENT_GRAPH
-from .exceptions import ScopeNotFound
+from .exceptions import ScopeNotFound, ParentScopeNotFound
 from .traversing import Traversing
 from .wamp import ScopeWamp
 
@@ -143,21 +143,23 @@ class WampScope(ScopeMixin, SessionScope):
         Subclasses that override this method can pass the payload argument to
         an on_deleted hook.
         """
-        self.log.info('remove: {name} pk: {pk}',
+        self.log.debug('remove: {name} pk: {pk}',
                        name=self.resource_name, pk=self.pk)
         try:
             if self.my.world is not None:
-                self.my.world.publish('remove_child', self.pk, self.resource_name,
+                self.my.world.publish('remove_child', self.pk,
+                                      self.resource_name,
                                       self.json)
-        except ValueError as ex:
+        except ParentScopeNotFound as ex:
             self.log.debug('{e!s}', e=ex)
             pass
 
         try:
             for runuser in self.my.runusers:
-                runuser.publish('remove_child', self.pk, self.resource_name,
+                runuser.publish('remove_child', self.pk,
+                                self.resource_name,
                                 self.json)
-        except ValueError as ex:
+        except ParentScopeNotFound as ex:
             self.log.debug('{e!s}', e=ex)
             pass
 
