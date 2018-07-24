@@ -2,6 +2,8 @@
 
 Python Library to implement Simulations, built on Crossbar.io and Django.
 
+[![Build Status](https://travis-ci.com/simplworld/simpl-modelservice.svg?token=cyqpBgqLC1o8qUptfcpE&branch=master)](https://travis-ci.com/simplworld/simpl-modelservice)
+
 ## Installation
 
     $ pip install git+ssh://git@github.com:simplworld/simpl-modelservice.git@master#egg=modelservice
