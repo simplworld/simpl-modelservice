@@ -20,6 +20,8 @@ from ..registry import registry
 
 from ...webhooks import dispatcher
 
+from ...conf import LOAD_ACTIVE_RUNS
+
 
 class Result(Scope):
     resource_name = 'result'
@@ -144,6 +146,44 @@ class RunUser(Scope):
             return None
         return self.game.get_scope('role', self.json['role'])
 
+    async def remove(self, payload):
+        """
+        Call parent Run on_runuser_deleted, notify parent Run subscribers,
+        and remove scope.
+        """
+        self.log.debug('remove: {name} pk: {pk}',
+                       name=self.resource_name, pk=self.pk)
+
+        if self.run is not None:
+            await self.run.on_runuser_deleted(payload)
+            self.run.publish('remove_child', self.pk, self.resource_name,
+                             self.json)
+
+        await super(RunUser, self).remove(payload)
+
+    def update_webhook(self, resource_name, payload, **kwargs):
+        self.log.debug('update_webhook: {name} pk: {pk}',
+                       name=self.resource_name, pk=self.pk)
+        # updating a RunUser may require updating its manager's 'world' index
+        world_changed = payload['world'] != self.json['world']
+        if world_changed:
+            self.game.scopes['runuser'].remove(self)
+        self.json = payload
+        if world_changed:
+            self.game.scopes['runuser'].add(self)
+        self.update_pubsub()
+
+    def update_pubsub(self):
+        """
+        Notify parent Run subscribers.
+        """
+        self.log.debug('update_pubsub: {name} pk: {pk}',
+                       name=self.resource_name, pk=self.pk, )
+
+        super(RunUser, self).update_pubsub()
+        self.run.publish(
+            'update_child', self.pk, self.resource_name, self.json)
+
 
 class Run(Scope):
     resource_name = 'run'
@@ -184,46 +224,6 @@ class Run(Scope):
         except IndexError:
             return None
 
-    async def add_or_update_runuser(self, payload) -> None:
-        # because RunUser parent is Run, moved from Game
-        # TODO eliminate and treat RunUser like a Scope
-        runuser_resource = Resource(self.games_client.runusers, **payload)
-        try:
-            runuser = self.game.get_scope('runuser', runuser_resource.pk)
-
-            self.game.scopes['runuser'].remove(runuser)  # TODO still needed?
-            runuser.json = runuser_resource.payload
-            self.game.scopes['runuser'].add(runuser)  # TODO still needed?
-
-            self.log.debug(
-                'add_or_update_runuser: {name} pk: {pk} updated runuser {id} json: {json!r}',
-                name=self.game.resource_name, pk=self.pk,
-                id=runuser_resource.pk, json=runuser.json)
-
-        except ScopeNotFound:
-            runuser = \
-                await self.game.runuser_class.create(
-                    self.session, self.game, runuser_resource.payload)
-
-            await self.game.add_scopes(runuser)
-
-            self.log.debug(
-                'add_or_update_runuser: {name} pk: {pk} added runuser {id}',
-                name=self.game.resource_name, pk=self.pk,
-                id=runuser_resource.pk)
-
-            scenario_resources = \
-                self.game.scopes['scenario'].filter(
-                    runuser=runuser_resource.pk)
-
-            ScenarioClass = self.game.scenario_class
-            scenarios = []
-            for scenario_resource in scenario_resources:
-                scenario = await ScenarioClass.create(
-                    self.game.session, self.game, scenario_resource.payload)
-                scenarios.append(scenario)
-            await self.game.add_scopes(*scenarios)
-
     async def on_runuser_deleted(self, payload):
         """
         Override this hook to provide custom behavior after deleting
@@ -238,50 +238,35 @@ class Run(Scope):
         """
         pass
 
-    @subscribe
-    async def runuser_deleted(self, payload, **kwargs):
+    async def add_child_scope(self, scope):
         """
-        A `RunUser` has been deleted from `Simpl-Games-API`
+        Push a scope instance into `child_scopes`.
+        If child is a runuser, call on_runuser_created.
+        Also, publish to Run topic subscribers.
         """
-        # TODO eliminate and treat RunUser like a Scope
         self.log.debug(
-            'Run.runuser_deleted: {name} pk: {pk} deleted runuser {id}',
-            name=self.resource_name, pk=self.pk, id=payload['id'])
+            'add_child_scope: parent {name} pk: {pk}, child {child} pk: {child_pk}',
+            name=self.resource_name,
+            pk=self.pk,
+            child=scope.resource_name,
+            child_pk=scope.pk,
+        )
 
-        runuser = self.game.get_scope('runuser', payload['id'])
-        await self.game.remove_scopes(runuser)
-        await self.on_runuser_deleted(payload)
+        await self.game.add_scopes(scope)
+        if scope.resource_name == 'runuser':
+            await self.on_runuser_created(scope.pk)
 
-    @subscribe
-    async def runuser_changed(self, payload, **kwargs):
-        """
-        A `RunUser` has been changed from `Simpl-Games-API`
-        """
-        # TODO eliminate and treat RunUser like a Scope
-        self.log.debug(
-            'Run.runuser_changed: {name} pk: {pk} updated runuser {id}',
-            name=self.resource_name, pk=self.pk, id=payload['id'])
-
-        await self.add_or_update_runuser(payload)
-
-    @subscribe
-    async def runuser_created(self, payload, **kwargs):
-        """
-        A `RunUser` has been created from `Simpl-Games-API`
-        """
-        # TODO eliminate and treat RunUser like a Scope
-
-        self.log.debug(
-            'Run.runuser_created: {name} pk: {pk} created runuser {id}',
-            name=self.resource_name, pk=self.pk, id=payload['id'])
-
-        await self.add_or_update_runuser(payload)
-        await self.on_runuser_created(payload['id'])
+        self.publish('add_child',
+                     scope.pk,
+                     scope.resource_name,
+                     scope.json)
 
     def update_pubsub(self):
         """
-        Propagate the run's update down to its worlds, so they can be notified
-        when the Run closes.
+        Propagate update down to child worlds and runusers, so they
+        are notified their parent Run has changed. This ensures players are
+        notified of phase changes, etc.
+        TODO How does publishing update_child when parent changes accomplish this?
         """
         super(Run, self).update_pubsub()
         for world in self.worlds:
@@ -428,10 +413,8 @@ class Game(WampScope):
         self.pk = await self.get_pk()
         await super(Game, self).start()
 
-    async def restore_endpoint(self, endpoint, scope_class):
-        # return a manager for endpoint's scopes
-
-        params = {'game_slug': self.slug}
+    async def _filter(self, endpoint, params):
+        # return consolidated query results
         results = []
         while True:
             resources = await endpoint.filter(**params)
@@ -443,6 +426,14 @@ class Game(WampScope):
                 # self.log.info('next url: {url}', url=endpoint.url)
             else:
                 break
+        return results
+
+    async def restore_endpoint(self, endpoint, scope_class, params={},
+                               parent_name=None, parent_ids=[]):
+        # return a manager for endpoint's scopes
+        params['game_slug'] = self.slug
+        self.log.debug("params: {params!s}", params=params)
+        results = await self._filter(endpoint, params)
 
         scopes = []
         for result in results:
@@ -466,12 +457,71 @@ class Game(WampScope):
                 scope_class=scope_class)
         return manager
 
-    async def restore(self):
-        # load all child scopes
+    async def restore_run(self, run_pk):
+        # load newly activated run and all its child scopes
+        run_scopes = []
         for endpoint_name, scope_class in self.endpoint_to_classes.items():
             endpoint = getattr(self.games_client, endpoint_name)
-            manager = await self.restore_endpoint(endpoint, scope_class)
-            self.scopes[scope_class.resource_name] = manager
+
+            if endpoint_name == 'phases' or endpoint_name == 'roles':
+                continue
+            elif endpoint_name == 'runs':
+                result = await endpoint.get(id=run_pk)
+                scope = await scope_class.create(self.session,
+                                                 game=self,
+                                                 json=result.payload)
+                self.scopes[scope_class.resource_name].append(scope)
+                run_scopes.append(scope)
+                self.log.debug('loaded activated run {pk}', pk=run_pk)
+            else:
+                manager = \
+                    await self.restore_endpoint(endpoint,
+                                                scope_class,
+                                                params={'run': run_pk})
+                scope_class_manager = self.scopes[scope_class.resource_name]
+                for scope in manager:
+                    scope_class_manager.append(scope)
+                    run_scopes.append(scope)
+                self.log.debug('loaded all {len} {children} of activated run',
+                               len=len(manager), children=endpoint_name)
+
+        for scope in run_scopes:
+            await scope.start()
+
+        self.log.info('Started {total} scopes of activated run',
+                      total=len(run_scopes))
+
+    async def restore(self):
+        # load all child scopes
+        if LOAD_ACTIVE_RUNS:
+            for endpoint_name, scope_class in self.endpoint_to_classes.items():
+                endpoint = getattr(self.games_client, endpoint_name)
+
+                if endpoint_name == 'phases' or endpoint_name == 'roles':
+                    manager = await self.restore_endpoint(endpoint,
+                                                          scope_class)
+                    self.scopes[scope_class.resource_name] = manager
+                elif endpoint_name == 'runs':
+                    manager = \
+                        await self.restore_endpoint(endpoint,
+                                                    scope_class,
+                                                    params={'active': True})
+                    self.scopes[scope_class.resource_name] = manager
+                    self.log.debug('loaded all active runs')
+                else:
+                    manager = \
+                        await self.restore_endpoint(endpoint,
+                                                    scope_class,
+                                                    params={
+                                                        'run_active': True})
+                    self.scopes[scope_class.resource_name] = manager
+                    self.log.debug('loaded all {children} of active runs',
+                                   children=endpoint_name)
+        else:
+            for endpoint_name, scope_class in self.endpoint_to_classes.items():
+                endpoint = getattr(self.games_client, endpoint_name)
+                manager = await self.restore_endpoint(endpoint, scope_class)
+                self.scopes[scope_class.resource_name] = manager
 
         # start scopes
         scopes = []
@@ -490,6 +540,13 @@ class Game(WampScope):
                     self.log.info('Starting scopes {progress!r}%...',
                                   progress=int_progress)
             await scope.start()
+
+    async def unload_inactive_run_scope_tree(self, run):
+        """
+        Unloads the run and its children without publishing delete notifications
+        """
+        self.log.info('unload_inactive_run_scope_tree: pk: {pk}', pk=run.pk)
+        await run._unload_scope_tree()
 
     async def get_pk(self):
         json = await self.storage.load(slug=self.slug)
@@ -533,9 +590,9 @@ class Game(WampScope):
             if self.users_subscription is None:
                 try:
                     self.users_subscription = \
-                        await webhooks_subscribe(api_session, 'users')
+                        await webhooks_subscribe(api_session, 'user')
                     self.log.info('webhook registered for prefix `{prefix}.*`',
-                                  prefix='users')
+                                  prefix='user')
                 except SubscriptionAlreadyExists as exc:
                     pass
 
@@ -600,11 +657,11 @@ class Game(WampScope):
         cls.resource_classes = resource_classes_map
 
         cls.endpoint_to_classes = OrderedDict([
-            ('roles', cls.resource_classes['role']),
             ('phases', cls.resource_classes['phase']),
+            ('roles', cls.resource_classes['role']),
             ('runs', cls.resource_classes['run']),
-            ('runusers', cls.resource_classes['runuser']),
             ('worlds', cls.resource_classes['world']),
+            ('runusers', cls.resource_classes['runuser']),
             ('scenarios', cls.resource_classes['scenario']),
             ('periods', cls.resource_classes['period']),
             ('decisions', cls.resource_classes['decision']),
@@ -622,8 +679,8 @@ default_resource_classes = (
     Phase,
     Role,
     Run,
-    RunUser,
     World,
+    RunUser,
     Scenario,
     Period,
     Decision,

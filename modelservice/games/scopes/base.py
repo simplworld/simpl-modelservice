@@ -8,7 +8,7 @@ from modelservice import conf
 from modelservice.utils.functional import classproperty
 
 from .constants import SCOPE_PARENT_GRAPH
-from .exceptions import ScopeNotFound
+from .exceptions import ScopeNotFound, ParentScopeNotFound
 from .traversing import Traversing
 from .wamp import ScopeWamp
 
@@ -107,7 +107,7 @@ class WampScope(ScopeMixin, SessionScope):
     def onStop(self):
         pass
 
-    async def add_child_scope(self, scope, publish=True):
+    async def add_child_scope(self, scope):
         """
         Push a scope instance into `child_scopes`.
         Also, notifies any associated World or Runusers.
@@ -122,37 +122,46 @@ class WampScope(ScopeMixin, SessionScope):
 
         await self.game.add_scopes(scope)
 
-        if publish is True:
-            if scope.my.world is not None:
-                scope.my.world.publish('add_child',
-                                       scope.pk,
-                                       scope.resource_name,
-                                       scope.json)
+        if scope.my.world is not None:
+            scope.my.world.publish('add_child',
+                                   scope.pk,
+                                   scope.resource_name,
+                                   scope.json)
 
-            if scope.my.runusers is not None:
-                for runuser in scope.my.runusers:
-                    runuser.publish('add_child',
-                                    scope.pk,
-                                    scope.resource_name,
-                                    scope.json)
+        if scope.my.runusers is not None:
+            for runuser in scope.my.runusers:
+                runuser.publish('add_child',
+                                scope.pk,
+                                scope.resource_name,
+                                scope.json)
 
         return scope
 
-    async def remove(self):
+    async def remove(self, payload=None):
         """
-        Remove scope.
-        Also, notifies any associated World and Runusers.
+        Remove scope and notify any associated World and Runusers.
+        Subclasses that override this method can pass the payload argument to
+        an on_deleted hook.
         """
         self.log.debug('remove: {name} pk: {pk}',
                        name=self.resource_name, pk=self.pk)
+        try:
+            if self.my.world is not None:
+                self.my.world.publish('remove_child', self.pk,
+                                      self.resource_name,
+                                      self.json)
+        except ParentScopeNotFound as ex:
+            self.log.debug('{e!s}', e=ex)
+            pass
 
-        if self.my.world is not None:
-            self.my.world.publish('remove_child', self.pk, self.resource_name,
-                                  self.json)
-
-        for runuser in self.my.runusers:
-            runuser.publish('remove_child', self.pk, self.resource_name,
-                            self.json)
+        try:
+            for runuser in self.my.runusers:
+                runuser.publish('remove_child', self.pk,
+                                self.resource_name,
+                                self.json)
+        except ParentScopeNotFound as ex:
+            self.log.debug('{e!s}', e=ex)
+            pass
 
         await self.my.game.remove_scopes(self)
 
@@ -173,14 +182,14 @@ class WampScope(ScopeMixin, SessionScope):
                 runuser.publish('update_child', self.pk, self.resource_name,
                                 self.json)
 
-    async def remove_child(self, scope):
+    async def remove_child(self, scope, payload=None):
         self.log.debug(
             'remove_child: parent {name} pk: {pk}, child {child} pk: {child_pk}',
             name=self.resource_name, pk=self.pk,
             child=scope.resource_name, child_pk=scope.pk
         )
 
-        await scope.remove()
+        await scope.remove(payload)
 
     async def add_child_webhook(self, resource_name, payload, *args, **kwargs):
         try:
@@ -314,6 +323,20 @@ class WampScope(ScopeMixin, SessionScope):
                        name=self.resource_name, pk=self.pk)
 
         return self._scope_tree(*args, **kwargs)
+
+    async def _unload_scope_tree(self):
+        """
+        Removes this scope and all its children from game's scopes.
+        """
+        self.log.debug('_unload_scope_tree: resource_name: {name} pk: {pk}',
+                       name=self.resource_name, pk=self.pk)
+
+        scope_groups = self.child_scopes
+        for resource_name, scope_group in scope_groups.items():
+            for scope in scope_group:
+                await scope._unload_scope_tree()
+
+        await self.my.game.remove_scopes(self)
 
     def pubsub_export(self):
         """
