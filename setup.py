@@ -1,13 +1,13 @@
 import os
 from setuptools import setup, find_packages
 
+# TODO: This goes away/gets invalidated once we go public
 github_token = '7e1b08465a2c5d2ba410cad5559f02751278ba79'
 
 VERSION = '0.0.13'
 
-f = open(os.path.join(os.path.dirname(__file__), 'README.md'))
-readme = f.read()
-f.close()
+with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
+    readme = f.read()
 
 setup(
     name='modelservice',
@@ -19,10 +19,7 @@ setup(
     url='',
     include_package_data=True,
     packages=find_packages(exclude=['tests']),
-    scripts=[
-        'bin/aws_profile.sh',
-        'bin/profile.sh'
-    ],
+    scripts=['bin/aws_profile.sh', 'bin/profile.sh'],
     zip_safe=False,
     classifiers=[
         'Development Status :: 4 - Beta',
@@ -52,11 +49,13 @@ setup(
         "botocore==1.8.42",
     ],
     dependency_links=[
-        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.0.9'.format(github_token=github_token, package='simpl-authenticator', version='v0.0.9'),
-        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.2.2'.format(github_token=github_token, package='simpl-client', version='v0.2.2'),
+        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.0.9'.format(
+            github_token=github_token, package='simpl-authenticator', version='v0.0.9'
+        ),
+        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.2.2'.format(
+            github_token=github_token, package='simpl-client', version='v0.2.2'
+        ),
     ],
     test_suite='runtests',
-    tests_require=[
-        "asynctest>=0.12",
-    ]
+    tests_require=["asynctest>=0.12"],
 )
