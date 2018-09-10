@@ -32,7 +32,6 @@ setup(
     install_requires=[
         "simpl-authenticator==0.7.0",
         "simpl_client==0.7.0",
-        "genericclient-base==1.0.1",
         "Django==1.11.11",
         "djangorestframework==3.6.4",
         "aiorwlock",
