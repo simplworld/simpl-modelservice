@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 # TODO: This goes away/gets invalidated once we go public
 github_token = '7e1b08465a2c5d2ba410cad5559f02751278ba79'
 
-VERSION = '0.0.13'
+VERSION = '0.7.0'
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
     readme = f.read()
