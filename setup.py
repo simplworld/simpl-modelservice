@@ -30,8 +30,8 @@ setup(
         'Framework :: Django',
     ],
     install_requires=[
-        "simpl-authenticator==0.0.9",
-        "simpl_client==0.2.2",
+        "simpl-authenticator==0.7.0",
+        "simpl_client==0.7.0",
         "genericclient-base==1.0.1",
         "Django==1.11.11",
         "djangorestframework==3.6.4",
@@ -49,11 +49,11 @@ setup(
         "botocore==1.8.42",
     ],
     dependency_links=[
-        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.0.9'.format(
-            github_token=github_token, package='simpl-authenticator', version='v0.0.9'
+        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.0'.format(
+            github_token=github_token, package='simpl-authenticator', version='v0.7.0'
         ),
-        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.2.2'.format(
-            github_token=github_token, package='simpl-client', version='v0.2.2'
+        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.0'.format(
+            github_token=github_token, package='simpl-client', version='v0.7.0'
         ),
     ],
     test_suite='runtests',
