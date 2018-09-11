@@ -46,10 +46,10 @@ setup(
     ],
     dependency_links=[
         'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.1'.format(
-            github_token=github_token, package='simpl-authenticator', version='v0.7.1'
+            package='simpl-authenticator', version='v0.7.1'
         ),
         'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.1'.format(
-            github_token=github_token, package='simpl-client', version='v0.7.1'
+            package='simpl-client', version='v0.7.1'
         ),
     ],
     test_suite='runtests',
