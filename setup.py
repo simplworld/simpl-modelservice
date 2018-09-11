@@ -1,9 +1,6 @@
 import os
 from setuptools import setup, find_packages
 
-# TODO: This goes away/gets invalidated once we go public
-github_token = '7e1b08465a2c5d2ba410cad5559f02751278ba79'
-
 VERSION = '0.7.0'
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
@@ -48,11 +45,11 @@ setup(
         "botocore==1.8.42",
     ],
     dependency_links=[
-        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.0'.format(
-            github_token=github_token, package='simpl-authenticator', version='v0.7.0'
+        'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.1'.format(
+            github_token=github_token, package='simpl-authenticator', version='v0.7.1'
         ),
-        'git+https://{github_token}@github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.0'.format(
-            github_token=github_token, package='simpl-client', version='v0.7.0'
+        'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.1'.format(
+            github_token=github_token, package='simpl-client', version='v0.7.1'
         ),
     ],
     test_suite='runtests',
