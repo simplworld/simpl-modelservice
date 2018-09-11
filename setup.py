@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-VERSION = '0.7.0'
+VERSION = '0.7.1'
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
     readme = f.read()
@@ -27,8 +27,8 @@ setup(
         'Framework :: Django',
     ],
     install_requires=[
-        "simpl-authenticator==0.7.0",
-        "simpl_client==0.7.0",
+        "simpl-authenticator==0.7.1",
+        "simpl_client==0.7.1",
         "Django==1.11.11",
         "djangorestframework==3.6.4",
         "aiorwlock",
