@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-VERSION = '0.7.1'
+VERSION = '0.7.2'
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
     readme = f.read()
@@ -27,8 +27,8 @@ setup(
         'Framework :: Django',
     ],
     install_requires=[
-        "simpl-authenticator==0.7.1",
-        "simpl_client==0.7.1",
+        "simpl-authenticator==0.7.2",
+        "simpl_client==0.7.2",
         "Django==1.11.11",
         "djangorestframework==3.6.4",
         "aiorwlock",
@@ -45,11 +45,11 @@ setup(
         "botocore==1.8.42",
     ],
     dependency_links=[
-        'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.1'.format(
-            package='simpl-authenticator', version='v0.7.1'
+        'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.2'.format(
+            package='simpl-authenticator', version='v0.7.2'
         ),
-        'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.1'.format(
-            package='simpl-client', version='v0.7.1'
+        'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.2'.format(
+            package='simpl-client', version='v0.7.2'
         ),
     ],
     test_suite='runtests',
