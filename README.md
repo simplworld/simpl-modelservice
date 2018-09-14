@@ -12,7 +12,7 @@ Python Library to implement Simulations, built on Crossbar.io and Django.
 
     $ mkvirtualenv simpl-modelservice
     $ pip install -r dev-requirements.txt
-    $ PIP_PROCESS_DEPENDENCY_LINKS=1 pip install -e .
+    $ pip install -e .
 
 ## Run tests
 

@@ -28,8 +28,8 @@ setup(
         'Framework :: Django',
     ],
     install_requires=[
-        "simpl-authenticator==0.7.1",
-        "simpl_client==0.7.1",
+        "simpl-authenticator==0.7.2",
+        "simpl_client==0.7.2",
         "Django==1.11.11",
         "djangorestframework==3.6.4",
         "aiorwlock",
@@ -44,14 +44,6 @@ setup(
         "thorn==1.5.0",
         "boto3==1.5.28",
         "botocore==1.8.42",
-    ],
-    dependency_links=[
-        'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.1'.format(
-            package='simpl-authenticator', version='v0.7.1'
-        ),
-        'git+https://github.com/simplworld/{package}.git/@{version}#egg={package}-0.7.1'.format(
-            package='simpl-client', version='v0.7.1'
-        ),
     ],
     test_suite='runtests',
     tests_require=["asynctest>=0.12"],
