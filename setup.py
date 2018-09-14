@@ -7,7 +7,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
     readme = f.read()
 
 setup(
-    name='modelservice',
+    name='simpl-modelservice',
     version=VERSION,
     description='Python Library to implement Simulations, built on Crossbar.io and Django.',
     long_description=readme,
