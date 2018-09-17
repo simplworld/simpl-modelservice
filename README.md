@@ -6,10 +6,12 @@ Python Library to implement Simulations, built on Crossbar.io and Django.
 
 ## Installation
 
-    $ pip install git+ssh://git@github.com:simplworld/simpl-modelservice.git@master#egg=modelservice
+    $ pip install simpl-modelservice
 
-## Setup environment
+## Setup development environment
 
+    $ git clone git@github.com:simplworld/simpl-modelservice.git
+    $ cd simpl-modelservice
     $ mkvirtualenv simpl-modelservice
     $ pip install -r dev-requirements.txt
     $ pip install -e .
