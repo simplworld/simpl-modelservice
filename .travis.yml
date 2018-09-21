@@ -5,7 +5,7 @@ python:
 
 install:
  - pip install -r dev-requirements.txt
- - PIP_PROCESS_DEPENDENCY_LINKS=1 pip install -e .
+ - pip install -e .
 
 script:
   - python runtests.py
