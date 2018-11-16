@@ -85,12 +85,15 @@ class CallbackDispatcher(object):
                     scope.update_pubsub()
             return
         elif resource_name == 'game':
-            # Send a very loud message advising not to delete games and
-            # stating the modelservice needs to be restarted
-            game.log.error(
-                "Deleting games is not recommended. Please restart the modelservice for game `{game_slug}`",
-                game_slug=game.slug)
-            return
+            if action == 'deleted':
+                game.log.error(
+                    "Deleting games is not recommended. Please stop the modelservice for game `{game_slug}`",
+                    game_slug=game.slug)
+                return
+            elif action == 'changed':
+                # update Game Scope. but skip publish
+                game.json = payload
+                return
 
         # Scopes -- each scope instance has a single designated parent
         parent_resources = SCOPE_PARENT_GRAPH[resource_name]
