@@ -45,6 +45,9 @@ setup(
         "boto3==1.5.28",
         "botocore==1.8.42",
     ],
+    dependency_links = [
+         'git+ssh://git@github.com/simplworkd/simpl-client.git@4-support-synchronous-requests#egg=simpl_client',
+    ],
     test_suite='runtests',
     tests_require=["asynctest>=0.12"],
 )
