@@ -1,17 +1,13 @@
-from simpl_client.async import GamesAPIClient
+from simpl_client import GamesAPIClient
 
-from .. import conf
+from modelservice import conf
 
 """
 A pre-configured asynchronous generic client for the simpl-games-api
 
 Usage::
 
-    from modelservice.simpl.async import games_client
-
-If you need pre-configured synchronous generic client for the simpl-games-api
-
-
+    from modelservice.simpl import games_client
 
 Endpoints
 ---------
