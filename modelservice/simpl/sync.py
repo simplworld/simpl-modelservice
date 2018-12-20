@@ -1,6 +1,6 @@
 from simpl_client.sync import GamesAPIClient
 
-from . import conf
+from .. import conf
 
 """
 A pre-configured synchronous generic client for the simpl-games-api

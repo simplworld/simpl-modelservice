@@ -1,6 +1,6 @@
 from simpl_client.async import GamesAPIClient
 
-from . import conf
+from .. import conf
 
 """
 A pre-configured asynchronous generic client for the simpl-games-api.
