@@ -40,7 +40,6 @@ setup(
         "crossbar==17.10.1",
         "django-markup==1.2",
         "django-click==2.0.0",
-        "docutils==0.12",
         "thorn==1.5.0",
         "boto3==1.5.28",
         "botocore==1.8.42",
