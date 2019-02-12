@@ -295,7 +295,7 @@ class WampScope(ScopeMixin, SessionScope):
         """
         return self.pubsub_export()
 
-    def _scope_tree(self, *args, **kwargs):
+    def _scope_tree(self, exclude=None, *args, **kwargs):
         """
         Returns this scope and its children serialized.
         """
@@ -308,19 +308,24 @@ class WampScope(ScopeMixin, SessionScope):
                 '_scope_tree: resource_name: {name}, user: {user!s}',
                 name=resource_name, user=user)
 
-            children = scope_group.for_user(user)
+            if resource_name == exclude:
+                self.log.info(
+                    '_scope_tree: exclude {name} children', name=resource_name)
+            else:
+                children = scope_group.for_user(user)
 
-            self.log.debug('_scope_tree: children: {children!s}',
-                           children=children)
+                self.log.debug('_scope_tree: children: {children!s}',
+                               children=children)
 
-            payload['children'] += [child._scope_tree(*args, **kwargs) for
-                                    child in children]
+                payload['children'] += \
+                    [child._scope_tree(exclude, *args, **kwargs)
+                     for child in children]
         return payload
 
     @register
-    def get_scope_tree(self, *args, **kwargs):
-        self.log.debug('get_scope_tree: {name} pk: {pk}',
-                       name=self.resource_name, pk=self.pk)
+    def get_scope_tree(self, exclude=None, *args, **kwargs):
+        self.log.debug('get_scope_tree: {name} pk: {pk} exclude: {exclude}',
+                       name=self.resource_name, pk=self.pk, exclude=exclude)
 
         return self._scope_tree(*args, **kwargs)
 
