@@ -305,10 +305,10 @@ class WampScope(ScopeMixin, SessionScope):
         scope_groups = self.child_scopes
         for resource_name, scope_group in scope_groups.items():
             self.log.debug(
-                '_scope_tree: resource_name: {name}, user: {user!s}, exclude: {exclude}',
+                '_scope_tree: resource_name: {name}, user: {user!s}, exclude: {exclude!s}',
                 name=resource_name, user=user, exclude=exclude)
 
-            if resource_name == exclude:
+            if exclude is not None and resource_name in exclude:
                 self.log.debug(
                     '_scope_tree: exclude {name} children', name=resource_name)
             else:
@@ -323,13 +323,11 @@ class WampScope(ScopeMixin, SessionScope):
         return payload
 
     @register
-    def get_scope_tree(self, *args, **kwargs):
-        exclude = args[0] if len(args) > 0 else None
-
-        self.log.debug('get_scope_tree: {name} pk: {pk} exclude: {exclude}',
+    def get_scope_tree(self, exclude=None, *args, **kwargs):
+        self.log.debug('get_scope_tree: {name} pk: {pk} exclude: {exclude!s}',
                        name=self.resource_name, pk=self.pk, exclude=exclude)
 
-        return self._scope_tree(*args, **kwargs)
+        return self._scope_tree(exclude, *args, **kwargs)
 
     async def _unload_scope_tree(self):
         """
