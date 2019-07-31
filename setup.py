@@ -11,6 +11,7 @@ setup(
     version=VERSION,
     description='Python Library to implement Simulations, built on Crossbar.io and Django.',
     long_description=readme,
+    long_description_content_type="text/markdown",
     author='',
     author_email='',
     url='https://github.com/simplworld/simpl-modelservice',
