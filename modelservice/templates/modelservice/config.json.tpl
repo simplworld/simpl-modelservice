@@ -122,7 +122,7 @@
                             "options": {
                                 "enable_webstatus": false,
                                 "max_frame_size": 1048576,
-                                "max_message_size": 1048576,
+                                "max_message_size": 0,
                                 "auto_fragment_size": 65536,
                                 "fail_by_drop": true,
                                 "open_handshake_timeout": 2500,
