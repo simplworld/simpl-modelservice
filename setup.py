@@ -41,9 +41,12 @@ setup(
         "crossbar==17.10.1",
         "django-markup==1.2",
         "django-click==2.0.0",
-        "thorn==1.5.0", # not compatible with Django 2
         "boto3==1.5.28",
         "botocore==1.8.42",
+        "thorn"
+    ],
+    dependency_links=[
+        "thorn==https://github.com/robinhood/thorn/zipball/master#egg=thorn",  # compatible with Django 2
     ],
     test_suite='runtests',
     tests_require=["asynctest>=0.12"],
