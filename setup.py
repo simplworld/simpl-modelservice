@@ -31,8 +31,8 @@ setup(
     install_requires=[
         "simpl-authenticator==0.7.3",
         "simpl_client==0.7.5",
-        "django>=1.11.15,<2.0",
-        "djangorestframework==3.6.4",
+        "django==2.2",
+        "djangorestframework==3.9.4",
         "aiorwlock",
         "aiojobs==0.2.1",
         "attrs>=17.4.0",
@@ -41,9 +41,12 @@ setup(
         "crossbar==17.10.1",
         "django-markup==1.2",
         "django-click==2.0.0",
-        "thorn==1.5.0",
         "boto3==1.5.28",
         "botocore==1.8.42",
+        "thorn"
+    ],
+    dependency_links=[
+        "thorn==https://github.com/robinhood/thorn/zipball/master#egg=thorn",  # compatible with Django 2
     ],
     test_suite='runtests',
     tests_require=["asynctest>=0.12"],
