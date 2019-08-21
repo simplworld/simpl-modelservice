@@ -46,7 +46,7 @@ setup(
         "thorn"
     ],
     dependency_links=[
-        "thorn==git+https://github.com/robinhood/thorn.git@486a53e",  # compatible with Django 2
+        "thorn==https://github.com/robinhood/thorn.git@486a53e",  # compatible with Django 2
     ],
     test_suite='runtests',
     tests_require=["asynctest>=0.12"],
