@@ -31,8 +31,8 @@ setup(
     install_requires=[
         "simpl-authenticator==0.7.3",
         "simpl_client==0.7.5",
-        "django==2.2",
-        "djangorestframework==3.9.4",
+        "django~=2.2.0",
+        "djangorestframework~=3.9.0",
         "aiorwlock",
         "aiojobs==0.2.1",
         "attrs>=17.4.0",
