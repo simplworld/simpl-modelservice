@@ -668,7 +668,10 @@ class Game(WampScope):
             ('results', cls.resource_classes['result']),
         ])
 
-        registry.register(cls, slug)
+        if cls.resource_classes['game']:
+            registry.register(cls.resource_classes['game'], slug)
+        else:
+            registry.register(cls, slug)
 
     def __repr__(self):
         return "<Scope {} slug: {} pk: {}>".format(self.resource_name,
