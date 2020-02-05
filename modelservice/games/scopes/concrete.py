@@ -668,7 +668,7 @@ class Game(WampScope):
             ('results', cls.resource_classes['result']),
         ])
 
-        if cls.resource_classes['game']:
+        if 'game' in cls.resource_classes and cls.resource_classes['game']:
             registry.register(cls.resource_classes['game'], slug)
         else:
             registry.register(cls, slug)
