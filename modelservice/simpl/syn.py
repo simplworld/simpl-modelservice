@@ -1,4 +1,4 @@
-from simpl_client.sync import GamesAPIClient
+from simpl_client.syn import GamesAPIClient
 
 from .. import conf
 
