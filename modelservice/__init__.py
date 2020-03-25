@@ -6,7 +6,7 @@ from .pubsub import registry as pubsub_registry
 from .webhooks import registry as hook_registry
 
 
-_version = "0.8.4"
+_version = "0.9.0"
 __version__ = VERSION = tuple(map(int, _version.split('.')))
 
 default_app_config = 'modelservice.apps.ModelserviceConfig'
