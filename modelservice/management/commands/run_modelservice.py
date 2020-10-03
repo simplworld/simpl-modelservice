@@ -12,37 +12,45 @@ class Command(BaseCommand):
     port = os.environ.get('PORT', None)
     bind_str = '{}:{}'.format(hostname, port)
 
+    log_str = os.environ.get('CROSSBAR_LOGLEVEL', 'info')
+
     def add_arguments(self, parser):
         # Named (optional) arguments
-        parser.add_argument('--bind',
+        parser.add_argument(
+            '--bind',
             dest='bind',
             default=self.bind_str if (self.hostname and self.port) else 'localhost:8080',
             help='host:port to bind the WebSocket server to')
 
-        parser.add_argument('--path',
+        parser.add_argument(
+            '--path',
             dest='path',
             default='ws',
             help='Path of the WebSocket endpoint')
 
-        parser.add_argument('--realm',
+        parser.add_argument(
+            '--realm',
             dest='realm',
             default='realm1',
             help='name of the Realm to start')
 
-        parser.add_argument('--config',
+        parser.add_argument(
+            '--config',
             dest='config',
             default=None,
             help='Path to crossbar configuration')
 
-        parser.add_argument('--print-config',
+        parser.add_argument(
+            '--print-config',
             dest='print_config',
             action="store_true",
             default=False,
             help='Print the auto-generated config')
 
-        parser.add_argument('--loglevel',
+        parser.add_argument(
+            '--loglevel',
             dest='loglevel',
-            default='info',
+            default=self.log_str,
             help='Set crossbar loglevel')
 
     def handle(self, *args, **options):
