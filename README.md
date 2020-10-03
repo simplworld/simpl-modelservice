@@ -66,6 +66,11 @@ It's sometimes useful to run [crossbar](https://github.com/crossbario/crossbar/)
 
     for the modelservice itself. 
 
+## Environment variables 
+
+- *GUEST_LOGLEVEL* adjust guest process logging, defaults to info
+- *CROSSBAR_LOGLEVEL* adjust crossbar process logging, defaults to info
+
 ## Profiling
 
 ### Writing tasks
