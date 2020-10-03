@@ -11,6 +11,8 @@ class Command(BaseCommand):
     port = os.environ.get('PORT', '8080')
     bind_str = '{}:{}'.format(hostname, port)
 
+    log_str = os.environ.get('GUEST_LOGLEVEL', 'info')
+
     def add_arguments(self, parser):
         # Named (optional) arguments
         parser.add_argument(
@@ -34,8 +36,8 @@ class Command(BaseCommand):
         parser.add_argument(
             '--log-level',
             dest='loglevel',
-            default='info',
-            help='Log verbosity.')
+            default=self.log_str,
+            help='Log verbosity')
 
         parser.add_argument(
             '--ping-interval',
