@@ -31,22 +31,16 @@ setup(
     install_requires=[
         "simpl-authenticator==0.7.3",
         "simpl_client~=0.8.0",
-        "django~=2.2.0",
-        "djangorestframework~=3.9.0",
+        "django~=2.2.16",
         "aiorwlock",
         "aiojobs==0.2.1",
         "attrs>=17.4.0",
         "autobahn==17.10.1",
-        "click==6.7",
+        "django-click==2.2.0",
         "crossbar==17.10.1",
         "django-markup==1.2",
-        "django-click==2.1.0",
         "boto3==1.5.28",
         "botocore==1.8.42",
-        "thorn"
-    ],
-    dependency_links=[
-        "thorn==https://github.com/robinhood/thorn.git@486a53e",  # compatible with Django 2
     ],
     test_suite='runtests',
     tests_require=["asynctest>=0.12"],
