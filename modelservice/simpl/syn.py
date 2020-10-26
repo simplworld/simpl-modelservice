@@ -7,7 +7,7 @@ A pre-configured synchronous generic client for the simpl-games-api
 
 Usage::
 
-    from modelservice.simpl.sync import games_client as sync_games_client
+    from modelservice.simpl.syn import games_client as sync_games_client
 
 Endpoints
 ---------
