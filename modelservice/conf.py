@@ -1,18 +1,21 @@
 import os
 from django.conf import settings
 
-SCOPE_STORAGE = getattr(settings, 'SCOPE_STORAGE',
-                        'modelservice.games.storages.SIMPLStorage')
-SIMPL_GAMES_URL = getattr(settings, 'SIMPL_GAMES_URL',
-                          'http://localhost:8100/apis')
-SIMPL_GAMES_AUTH = getattr(settings, 'SIMPL_GAMES_AUTH', None)
+SCOPE_STORAGE = getattr(
+    settings, "SCOPE_STORAGE", "modelservice.games.storages.SIMPLStorage"
+)
+SIMPL_GAMES_URL = getattr(settings, "SIMPL_GAMES_URL", "http://localhost:8100/apis")
+SIMPL_GAMES_AUTH = getattr(settings, "SIMPL_GAMES_AUTH", None)
 
 ROOT_TOPIC = settings.ROOT_TOPIC
-CALLBACK_URL = getattr(settings, 'CALLBACK_URL',
-                       'http://{hostname}:{port}/callback')
+CALLBACK_URL = getattr(settings, "CALLBACK_URL", "http://{hostname}:{port}/callback")
 
-LOAD_ACTIVE_RUNS = getattr(settings, 'LOAD_ACTIVE_RUNS', True)
+LOAD_ACTIVE_RUNS = getattr(settings, "LOAD_ACTIVE_RUNS", True)
+
+PROFILING_ENABLED = getattr(settings, "PROFILIGN_ENABLED", False)
+
 
 def get_callback_url():
-    return CALLBACK_URL.format(hostname=os.environ.get('HOSTNAME', ''),
-                               port=os.environ.get('PORT', ''))
+    return CALLBACK_URL.format(
+        hostname=os.environ.get("HOSTNAME", ""), port=os.environ.get("PORT", "")
+    )

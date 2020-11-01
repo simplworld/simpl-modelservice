@@ -27,7 +27,7 @@
                                 }
                             ]
                         },
-                        {
+                        {% if PROFILING_ENABLED %}
                             "name": "profiler",
                             "permissions": [
                                 {
@@ -45,7 +45,7 @@
                                     "cache": true
                                 }
                             ]
-                        },
+                        }, {% endif %}
                         {
                             "name": "browser",
                             "permissions": [
