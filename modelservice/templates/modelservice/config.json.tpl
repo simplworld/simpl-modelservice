@@ -101,6 +101,7 @@
                         "ws": {
                             "type": "websocket",
                              "auth": {
+                                {% if PROFILING_ENABLED %}
                                 "ticket": {
                                     "type": "static",
                                     "principals": {
@@ -110,6 +111,7 @@
                                         }
                                     }
                                 },
+                                {% endif %}
                                 "wampcra": {
                                    "type": "dynamic",
                                    "authenticator": "world.simpl.authenticate"
