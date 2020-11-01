@@ -68,6 +68,7 @@
                     ]
                 }
             ],
+            {% comment %}
             "components": [
                 {
                    "type": "class",
@@ -76,6 +77,7 @@
                    "classname": "authenticator.AuthenticatorComponent"
                 }
             ],
+            {% endcomment %}
             "transports": [
                 {
                     "type": "web",
@@ -112,7 +114,7 @@
                                     }
                                 },
                                 {% endif %}
-                                "wampcra": {
+                                "ticket": {
                                    "type": "dynamic",
                                    "authenticator": "world.simpl.authenticate"
                                 },

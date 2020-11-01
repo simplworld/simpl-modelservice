@@ -1,35 +1,34 @@
 import os
 from setuptools import setup, find_packages
 
-VERSION = '0.9.0'
+VERSION = "0.9.0"
 
-with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
+with open(os.path.join(os.path.dirname(__file__), "README.md")) as f:
     readme = f.read()
 
 setup(
-    name='simpl-modelservice',
+    name="simpl-modelservice",
     version=VERSION,
-    description='Python Library to implement Simulations, built on Crossbar.io and Django.',
+    description="Python Library to implement Simulations, built on Crossbar.io and Django.",
     long_description=readme,
     long_description_content_type="text/markdown",
-    author='',
-    author_email='',
-    url='https://github.com/simplworld/simpl-modelservice',
+    author="",
+    author_email="",
+    url="https://github.com/simplworld/simpl-modelservice",
     include_package_data=True,
-    packages=find_packages(exclude=['tests']),
-    scripts=['bin/aws_profile.sh', 'bin/profile.sh'],
+    packages=find_packages(exclude=["tests"]),
+    scripts=["bin/aws_profile.sh", "bin/profile.sh"],
     zip_safe=False,
     classifiers=[
-        'Development Status :: 4 - Beta',
-        'Environment :: Web Environment',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: GNU General Public License v2 (GPLv2)',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3',
-        'Framework :: Django',
+        "Development Status :: 4 - Beta",
+        "Environment :: Web Environment",
+        "Intended Audience :: Developers",
+        "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python :: 3",
+        "Framework :: Django",
     ],
     install_requires=[
-        "simpl-authenticator==0.7.3",
         "simpl_client~=0.8.0",
         "django~=2.2.16",
         "aiorwlock",
@@ -43,6 +42,6 @@ setup(
         "click==7.1.2",
         "django-click==2.2.0",
     ],
-    test_suite='runtests',
+    test_suite="runtests",
     tests_require=["asynctest>=0.12"],
 )
