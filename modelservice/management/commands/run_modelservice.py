@@ -5,6 +5,7 @@ import os
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
+from django.utils.crypto import get_random_string
 
 
 class Command(BaseCommand):
@@ -12,6 +13,7 @@ class Command(BaseCommand):
     port = os.environ.get("PORT", None)
     bind_str = "{}:{}".format(hostname, port)
 
+    model_ticket_str = os.environ.get("MODEL_TICKET", None)
     log_str = os.environ.get("CROSSBAR_LOGLEVEL", "info")
 
     def add_arguments(self, parser):
@@ -55,6 +57,29 @@ class Command(BaseCommand):
             help="Set crossbar loglevel",
         )
 
+        parser.add_argument(
+            "--model-ticket",
+            dest="model_ticket",
+            default=self.model_ticket_str,
+            help="Set MODEL_TICKET",
+        )
+
+        parser.add_argument(
+            "--profiling",
+            dest="profiling",
+            action="store_true",
+            default=False,
+            help="Enable service profiling",
+        )
+
+        parser.add_argument(
+            "--monitoring",
+            dest="monitoring",
+            action="store_true",
+            default=False,
+            help="Enable monitoring port",
+        )
+
     def handle(self, *args, **options):
         config_path = options["config"]
         loglevel = options["loglevel"]
@@ -70,7 +95,15 @@ class Command(BaseCommand):
                 "realm": options["realm"],
                 "ROOT_TOPIC": settings.ROOT_TOPIC,
                 "DEBUG": settings.DEBUG,
-                "PROFILING_ENABLED": getattr(settings, "PROFILING_ENABLED", False),
+                "PROFILING_ENABLED": getattr(
+                    settings, "PROFILING_ENABLED", options["profiling"]
+                ),
+                "MONITORING_ENABLED": getattr(
+                    settings, "MONITORING_ENABLED", options["monitoring"]
+                ),
+                "MODEL_TICKET": getattr(
+                    settings, "MODEL_TICKET", options["model_ticket"]
+                ),
             }
             config = render_to_string("modelservice/config.json.tpl", ctx)
 

@@ -8,8 +8,44 @@
                 {
                     "name": "{{ realm }}",
                     "roles": [
+                        {% if not MONITORING_ENABLED %}
                         {
-                            "name": "service",
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "*",
+                                    "allow": {
+                                        "register": false,
+                                        "call": false,
+                                        "publish": false,
+                                        "subscribe": false
+                                    }
+                                }
+                            ]
+                        },
+                        {% else %}
+                        {
+                            "name": "anonymous",
+                            "permissions": [
+                                {
+                                    "uri": "*",
+                                    "allow": {
+                                        "call": true,
+                                        "register": true,
+                                        "publish": true,
+                                        "subscribe": true
+                                    },
+                                    "disclose": {
+                                        "caller": true,
+                                        "publisher": true
+                                    },
+                                    "cache": true
+                                }
+                            ]
+                        },
+                        {% endif %}
+                        {
+                            "name": "model",
                             "permissions": [
                                 {
                                     "uri": "*",
@@ -28,6 +64,7 @@
                             ]
                         },
                         {% if PROFILING_ENABLED %}
+                        {# FYI It's very possible this won't work correctly after auth/permissions fixes #}
                             "name": "profiler",
                             "permissions": [
                                 {
@@ -48,22 +85,7 @@
                         }, {% endif %}
                         {
                             "name": "browser",
-                            "permissions": [
-                                {
-                                    "uri": "*",
-                                    "allow": {
-                                        "call": true,
-                                        "register": true,
-                                        "publish": true,
-                                        "subscribe": true
-                                    },
-                                    "disclose": {
-                                        "caller": true,
-                                        "publisher": true
-                                    },
-                                    "cache": true
-                                }
-                            ]
+                            "authorizer": "world.simpl.authorize"
                         }
                     ]
                 }
@@ -73,8 +95,8 @@
                 {
                    "type": "class",
                    "realm": "realm1",
-                   "role": "service",
-                   "classname": "authenticator.AuthenticatorComponent"
+                   "role": "authorizer",
+                   "classname": "modelservice.authorization.SimplAuthorizationComponent"
                 }
             ],
             {% endcomment %}
@@ -92,6 +114,7 @@
                             "module": "{{ wsgi_module }}",
                             "object": "{{ wsgi_object }}"
                         },
+                        {% if MONITORING_ENABLED %}
                         "monitor": {
                             "type": "static",
                             "package": "modelservice",
@@ -100,27 +123,26 @@
                                 "enable_directory_listing": true
                             }
                         },
+                        {% endif %}
                         "ws": {
                             "type": "websocket",
                              "auth": {
-                                {% if PROFILING_ENABLED %}
-                                "ticket": {
+                                "wampcra": {
                                     "type": "static",
-                                    "principals": {
-                                        "worker": {
-                                            "ticket": "===secret!!!===",
-                                            "role": "profiler"
+                                    "users": {
+                                        "model": {
+                                            "secret": "{{ MODEL_TICKET }}",
+                                            "role": "model"
                                         }
                                     }
                                 },
-                                {% endif %}
                                 "ticket": {
                                    "type": "dynamic",
                                    "authenticator": "world.simpl.authenticate"
                                 },
                                 "anonymous": {
                                     "type": "static",
-                                    "role": "service"
+                                    "role": "anonymous"
                                 }
                             },
                             "options": {
@@ -167,7 +189,8 @@
                 "env": {
                     "vars": {
                         "HOSTNAME": "{{ hostname }}",
-                        "PORT": "{{ port }}"
+                        "PORT": "{{ port }}",
+                        "MODEL_TICKET": "{{ MODEL_TICKET }}"
                     }
                 }
             }

@@ -46,7 +46,8 @@ Then push to the repo:
 
 ## View current WAMP subscriptions and registrations
 
-Point your browser to http://localhost:8080/monitor and open your javascript console
+Point your browser to http://localhost:8080/monitor and open your javascript console. You will need to
+add `--monitoring` when you call `run_modelservice`.
 
 ## How to run a modelservice as two separate processes
 
@@ -64,12 +65,13 @@ It's sometimes useful to run [crossbar](https://github.com/crossbario/crossbar/)
 
         HOSTNAME=localhost PORT=8080 ./manage.py run_guest --settings=simpl-calc.settings
 
-    for the modelservice itself. 
+    for the modelservice itself.
 
-## Environment variables 
+## Environment variables
 
 - *GUEST_LOGLEVEL* adjust guest process logging, defaults to info
 - *CROSSBAR_LOGLEVEL* adjust crossbar process logging, defaults to info
+- *MODEL_TICKET* the shared secret password between the Crossbar router and the guest model service process
 
 ## Profiling
 

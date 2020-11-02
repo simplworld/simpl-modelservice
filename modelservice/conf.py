@@ -1,5 +1,6 @@
 import os
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 
 SCOPE_STORAGE = getattr(
     settings, "SCOPE_STORAGE", "modelservice.games.storages.SIMPLStorage"
@@ -12,7 +13,14 @@ CALLBACK_URL = getattr(settings, "CALLBACK_URL", "http://{hostname}:{port}/callb
 
 LOAD_ACTIVE_RUNS = getattr(settings, "LOAD_ACTIVE_RUNS", True)
 
-PROFILING_ENABLED = getattr(settings, "PROFILIGN_ENABLED", False)
+PROFILING_ENABLED = getattr(settings, "PROFILING_ENABLED", False)
+MONITORING_ENABLED = getattr(settings, "MONITORING_ENABLED", False)
+
+MODEL_TICKET = getattr(settings, "MODEL_TICKET", None)
+if MODEL_TICKET is None:
+    raise ImproperlyConfigured(
+        "MODEL_TICKET must be set to a secure password like string for guest model process"
+    )
 
 
 def get_callback_url():
