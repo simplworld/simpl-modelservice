@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import random
 import traceback
+import urllib 
 
 from autobahn.asyncio.wamp import ApplicationSession
 from autobahn.wamp import auth
@@ -53,7 +54,7 @@ class ModelComponent(ApplicationSession):
 
     async def authenticate(self, realm, authid, details):
         """ Authenticator a user against the Simpl Games API """
-        url = f"{conf.SIMPL_GAMES_URL}/authcheck/"
+        url = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/authcheck/")
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
