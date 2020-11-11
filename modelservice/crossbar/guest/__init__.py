@@ -2,7 +2,7 @@ import aiohttp
 import asyncio
 import random
 import traceback
-import urllib 
+import urllib
 
 from autobahn.asyncio.wamp import ApplicationSession
 from autobahn.wamp import auth
@@ -87,6 +87,10 @@ class ModelComponent(ApplicationSession):
                 f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
             )
             return {"allow": True, "cache": True, "disclose": True}
+
+        if resource_name == "game":
+            if parts[1] == "get_phases" or parts[1] == "get_roles":
+                return {"allow": True, "cache": True, "disclose": True}
 
         # Allow phases and roles always
         if resource_name in ["phase", "role"]:
