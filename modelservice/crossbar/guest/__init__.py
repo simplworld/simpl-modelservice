@@ -56,6 +56,8 @@ class ModelComponent(ApplicationSession):
         """ Authenticator a user against the Simpl Games API """
         url = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/authcheck/")
 
+        self.log.info(f"AUTH URL='{url}'")
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 url, data={"email": authid, "password": details["ticket"]}
