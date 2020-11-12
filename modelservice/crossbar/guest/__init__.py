@@ -54,7 +54,7 @@ class ModelComponent(ApplicationSession):
 
     async def authenticate(self, realm, authid, details):
         """ Authenticator a user against the Simpl Games API """
-        url = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/authcheck/")
+        url = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/authcheck/")
 
         self.log.info(f"AUTH URL='{url}'")
 
