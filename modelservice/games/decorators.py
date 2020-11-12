@@ -3,10 +3,7 @@ from functools import wraps
 
 from .registry import methods_registry
 
-default_registration_options = {
-    'match': 'prefix',
-    'details_arg': 'details'
-}
+default_registration_options = {"match": "prefix", "details_arg": "details"}
 
 
 def get_user_details(details):
@@ -40,21 +37,23 @@ def mark(attr, *args, **kwargs):
     def decorator(func):
         @wraps(func)
         async def wrap(scope, *_args, **_kwargs):
-            details = _kwargs.get('details', None)
+            details = _kwargs.get("details", None)
             user = None
 
             if details is not None:
                 user_id, role = get_user_details(details)
 
                 # Profilers can override the user id for profiling purposes
-                if role == 'profiler':
-                    if 'user_email' in _kwargs:
-                        email = _kwargs.pop('user_email')
+                if role == "profiler":
+                    if "user_email" in _kwargs:
+                        email = _kwargs.pop("user_email")
                         user = await scope.storage.get_user(email=email)
-                elif user_id is not None:
+                elif "@" in user_id:
+                    user = await scope.storage.get_user(email=user_id)
+                elif user_id is not None and user_id.isdigit():
                     user = await scope.storage.get_user(id=user_id)
 
-            _kwargs['user'] = user
+            _kwargs["user"] = user
 
             try:
                 if inspect.iscoroutinefunction(func):
@@ -73,9 +72,7 @@ def mark(attr, *args, **kwargs):
         registration_options.update(kwargs)
         wrap.registration_options = registration_options
         getattr(methods_registry, attr).add(
-            method=wrap,
-            name=func.__name__,
-            options=registration_options,
+            method=wrap, name=func.__name__, options=registration_options
         )
 
         return wrap
@@ -86,12 +83,12 @@ def mark(attr, *args, **kwargs):
 
 
 def subscribe(*args, **kwargs):
-    return mark('subscribed', *args, **kwargs)
+    return mark("subscribed", *args, **kwargs)
 
 
 def register(*args, **kwargs):
-    return mark('registered', *args, **kwargs)
+    return mark("registered", *args, **kwargs)
 
 
 def hook(*args, **kwargs):
-    return mark('hooked', *args, **kwargs)
+    return mark("hooked", *args, **kwargs)
