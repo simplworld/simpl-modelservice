@@ -81,7 +81,15 @@ class ModelComponent(ApplicationSession):
         base = uri.replace(f"{conf.ROOT_TOPIC}.model.", "")
         parts = base.split(".")
         resource_name = parts[0]
-        pk = int(parts[1])
+
+        if resource_name == "game":
+            if parts[1] == "get_phases" or parts[1] == "get_roles":
+                return {"allow": True, "cache": True, "disclose": True}
+
+        try:
+            pk = int(parts[1])
+        except ValueError:
+            pk = None
 
         # Disallow register actions
         if action == "register":
@@ -89,10 +97,6 @@ class ModelComponent(ApplicationSession):
                 f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
             )
             return {"allow": True, "cache": True, "disclose": True}
-
-        if resource_name == "game":
-            if parts[1] == "get_phases" or parts[1] == "get_roles":
-                return {"allow": True, "cache": True, "disclose": True}
 
         # Allow phases and roles always
         if resource_name in ["phase", "role"]:
