@@ -1,5 +1,6 @@
 import aiohttp
 import asyncio
+import json
 import random
 import traceback
 import urllib
@@ -8,6 +9,7 @@ from autobahn.asyncio.wamp import ApplicationSession
 from autobahn.wamp import auth
 from autobahn.wamp.types import RegisterOptions
 
+from genericclient_base.exceptions import HTTPError
 
 from modelservice import conf
 
@@ -15,8 +17,21 @@ from modelservice.games.scopes.exceptions import FormError, ScopeNotFound
 from modelservice.callees import registry as callee_registry
 from modelservice.games import registry as game_registry
 from modelservice.pubsub import registry as subscriber_registry
+from modelservice.simpl import games_client
 from modelservice.utils.instruments import Timer
 from modelservice.utils.strings import no_format
+
+# Avoid building a few common things repeatedly
+BASIC_AUTH = aiohttp.BasicAuth(
+    login=conf.SIMPL_GAMES_AUTH[0],
+    password=conf.SIMPL_GAMES_AUTH[1],
+    encoding="utf-8",
+)
+
+CHAT_CHECK_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/check_user/")
+CHAT_ADD_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/add_user/")
+CHAT_REMOVE_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/remove_user/")
+CHAT_POST_MESSAGE_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/messages/post_message/")
 
 
 class ModelComponent(ApplicationSession):
@@ -56,8 +71,6 @@ class ModelComponent(ApplicationSession):
         """ Authenticator a user against the Simpl Games API """
         url = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/authcheck/")
 
-        self.log.info(f"AUTH URL='{url}'")
-
         async with aiohttp.ClientSession() as session:
             async with session.post(
                 url, data={"email": authid, "password": details["ticket"]}
@@ -66,16 +79,64 @@ class ModelComponent(ApplicationSession):
                     self.log.info(f"AUTH SUCCESSFUL realm={realm} authid={authid}")
                     return {"secret": details["ticket"], "role": "browser"}
                 else:
-                    self.log.info(f"AUTH FAILED realm={realm} authid={authid}")
+                    self.log.info(f"AUTH FAILED realm={realm} authid={authid} auth-url={url}")
                     return {
                         "secret": f"{random.random()}{details['ticket']}{random.random()}"
                     }
 
-    def authorize(self, session, uri, action, options):
+    def _is_authid_leader(self, authid):
+        for game_run in self.games[0].runs:
+            try:
+                me = game_run.runusers.get(email=authid)
+                if me.json["leader"] is True:
+                    return True
+            except ScopeNotFound:
+                continue
+
+        return False
+
+    async def authorize(self, session, uri, action, options):
         """ Authorize a particular user/action """
         authid = session["authid"]
         role = session["authrole"]
         game = self.games[0]
+
+        self.log.info(f"AUTHORIZE CALL uri={uri} action={action}")
+
+        ################################################
+        # Handle chat related operations authorization
+        ################################################
+        if uri.startswith(f"{conf.ROOT_TOPIC}.chat."):
+            base = uri.replace(f"{conf.ROOT_TOPIC}.chat.", "")
+
+            is_leader = self._is_authid_leader(authid)
+            if base == "create_room" or base == "add_user" or base == "remove_user" or "check_user":
+
+                if not is_leader:
+                    self.log.info(f"Non-leader attempting to modify chat rooms")
+                    return {"allow": False, "cache": True, "disclose": True}
+
+                return {"allow": True, "cache": True, "disclose": True}
+
+            # Allow users in a chat room to subscribe to the pubsub channel, but
+            # they SHOULD NOT be allowed to publish on it.
+            if action == "subscribe" and base.startswith("rooms."):
+                parts = base.split(".")
+                room_slug = parts[1]
+
+                result = await self.chat_check_user(room_slug=room_slug, authid=authid)
+
+                if result is True:
+                    return {"allow": True, "cache": True, "disclose": True}
+                else:
+                    return {"allow": False, "cache": True, "disclose": True}
+
+            # Disallow chat operations that are not specifically allowed
+            return {"allow": False, "cache": True, "disclose": True}
+
+        ################################################
+        # Handle the non-chat related Simpl scopes
+        ################################################
 
         # Determine resource and pk of URI
         base = uri.replace(f"{conf.ROOT_TOPIC}.model.", "")
@@ -96,7 +157,7 @@ class ModelComponent(ApplicationSession):
             self.log.info(
                 f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
             )
-            return {"allow": True, "cache": True, "disclose": True}
+            return {"allow": False, "cache": True, "disclose": True}
 
         # Allow phases and roles always
         if resource_name in ["phase", "role"]:
@@ -166,6 +227,80 @@ class ModelComponent(ApplicationSession):
         self.log.info(f"AUTHORIZATION DENY authid={authid} uri={uri}")
         return {"allow": False, "cache": False, "disclose": True}
 
+    async def chat_create_room(self, room_data):
+        """ Create a room """
+        payload = {
+            "game": self.games[0].pk,
+            "slug": room_data["slug"],
+            "name": room_data["name"],
+            "data": room_data["data"],
+        }
+
+        async with games_client as api_session:
+            try:
+                room = await api_session.rooms.create(payload)
+                slug = room_data["slug"]
+                self.log.info(f"Chat room '{slug}' created.")
+                return room.payload
+            except HTTPError as e:
+                if e.response.status == 400:
+                    self.log.error(f"Unable to create room {e.response.json()}")
+
+    async def chat_check_user(self, room_slug, authid):
+        """ Check if a user is allowed to subscribe to a room """
+        async with aiohttp.ClientSession(auth=BASIC_AUTH) as session:
+            async with session.post(
+                CHAT_CHECK_USER_URL, data={"email": authid, "room": room_slug}
+            ) as response:
+                if response.status == 200:
+                    self.log.info(f"CHAT USER CHECK SUCCESSFUL room={room_slug} authid={authid}")
+                    return {"allowed": True}
+                else:
+                    self.log.info(f"CHAT USER CHECK FAILED room={room_slug} authid={authid}")
+                    return {"allowed": False}
+
+    async def chat_add_user(self, room_slug, runuser_id):
+        """ Add a user to a room """
+        async with aiohttp.ClientSession(auth=BASIC_AUTH) as session:
+            async with session.post(
+                CHAT_CHECK_USER_URL, data={"runuser": runuser_id, "room": room_slug}
+            ) as response:
+                if response.status == 200:
+                    self.log.info(f"CHAT ADD USER SUCCESSFUL room={room_slug} runuser_id={runuser_id}")
+                    return {"allowed": True}
+                else:
+                    self.log.info(f"CHAT ADD USER FAILED room={room_slug} runuser_id={runuser_id}")
+                    return {"allowed": False}
+
+    async def chat_remove_user(self, room_slug, runuser_id):
+        """ Remove a user from a room """
+        async with aiohttp.ClientSession(auth=BASIC_AUTH) as session:
+            async with session.post(
+                CHAT_REMOVE_USER_URL,
+                data={"runuser": runuser_id, "room": room_slug}
+            ) as response:
+                if response.status == 200:
+                    self.log.info(f"CHAT REMOVE USER SUCCESSFUL room={room_slug} runuser_id={runuser_id}")
+                    return {"allowed": True}
+                else:
+                    self.log.info(f"CHAT REMOVE USER FAILED room={room_slug} runuser_id={runuser_id}")
+                    return {"allowed": False}
+
+    async def chat_post_message(self, room_slug, authid, data):
+        """ Post a message to a room """
+        async with aiohttp.ClientSession(auth=BASIC_AUTH) as session:
+            async with session.post(
+                CHAT_POST_MESSAGE_URL,
+                data={"sender": authid, "room": room_slug, "data": json.dumps(data)}
+            ) as response:
+                content = await response.text()
+                if response.status == 200:
+                    self.publish(f"{conf.ROOT_TOPIC}.chat.room.{room_slug}", data)
+                    return {"posted": True}
+                else:
+                    self.log.info(f"CHAT POST ERROR {content}")
+                    return {"posted": False}
+
     async def onJoin(self, details):
         self.log.info("session joined")
         # can do subscribes, registers here e.g.:
@@ -181,6 +316,21 @@ class ModelComponent(ApplicationSession):
         self.log.info("Register authorization as 'world.simpl.authorize'")
 
         self.define(FormError)
+
+        ###########################################################
+        # Setup chat RPC methods
+        ###########################################################
+        self.log.info(f"Register {conf.ROOT_TOPIC}.chat.create_room")
+        await self.register(self.chat_create_room, f"{conf.ROOT_TOPIC}.chat.create_room")
+        self.log.info(f"Register {conf.ROOT_TOPIC}.chat.check_user")
+        await self.register(self.chat_check_user, f"{conf.ROOT_TOPIC}.chat.check_user")
+        self.log.info(f"Register {conf.ROOT_TOPIC}.chat.add_user")
+        await self.register(self.chat_add_user, f"{conf.ROOT_TOPIC}.chat.add_user")
+        self.log.info(f"Register {conf.ROOT_TOPIC}.chat.remove_user")
+        await self.register(self.chat_remove_user, f"{conf.ROOT_TOPIC}.chat.remove_user")
+        self.log.info(f"Register {conf.ROOT_TOPIC}.chat.post_message")
+        await self.register(self.chat_post_message, f"{conf.ROOT_TOPIC}.chat.post_message")
+        self.log.info("Chat RPC methods registered")
 
         for game_name, GameClass in game_registry._registry.items():
             try:
