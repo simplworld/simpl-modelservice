@@ -243,27 +243,35 @@ class ModelComponent(ApplicationSession):
         runs = set()
         worlds = set()
         runusers = set()
+        rooms = set()
 
         for game_run in self.games[0].runs:
             try:
                 runuser = game_run.runusers.get(email=details.caller_authid)
+                runuser_id = runuser.json["id"]
+
                 if runuser.json["leader"] is True:
                     is_leader = True
+
+                run_rooms = await self.chat_rooms_for_user(runuser_id)
+                if run_rooms:
+                    for room in run_rooms:
+                        rooms.add(room["slug"])
 
                 if is_leader:
                     runs.add(game_run.pk)
                 else:
-                    runusers.add(runuser.json["id"])
+                    runusers.add(runuser_id)
                     if runuser.json["world"]:
                         worlds.add(runuser.json["world"])
             except ScopeNotFound:
                 continue
 
         # Build topics
-        topics = []
+        topics = [f"model:chat.{x}" for x in rooms]
 
         if is_leader:
-            topics = [f"model:model.run.{x}" for x in runs]
+            topics.extend([f"model:model.run.{x}" for x in runs])
         else:
             topics.extend([f"model:model.runuser.{x}" for x in runusers])
             topics.extend([f"model:model.world.{x}" for x in worlds])
@@ -298,7 +306,7 @@ class ModelComponent(ApplicationSession):
                 CHAT_FOR_USER_URL, data={"runuser": runuser_id}
             ) as response:
                 if response.status == 200:
-                    rooms = await response.text()
+                    rooms = await response.json()
                     return rooms
                 else:
                     self.log.info(f"CHAT USER ROOMS FAILED content={rooms} runuser_id={runuser_id}")
