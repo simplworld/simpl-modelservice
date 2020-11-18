@@ -28,6 +28,7 @@ BASIC_AUTH = aiohttp.BasicAuth(
     encoding="utf-8",
 )
 
+CHAT_FOR_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/for_user/")
 CHAT_CHECK_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/check_user/")
 CHAT_ADD_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/add_user/")
 CHAT_REMOVE_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/remove_user/")
@@ -116,6 +117,9 @@ class ModelComponent(ApplicationSession):
                     self.log.info(f"Non-leader attempting to modify chat rooms")
                     return {"allow": False, "cache": True, "disclose": True}
 
+                return {"allow": True, "cache": True, "disclose": True}
+
+            if base == "rooms_for_user":
                 return {"allow": True, "cache": True, "disclose": True}
 
             # Allow users in a chat room to subscribe to the pubsub channel, but
@@ -237,6 +241,7 @@ class ModelComponent(ApplicationSession):
         }
 
         async with games_client as api_session:
+
             try:
                 room = await api_session.rooms.create(payload)
                 slug = room_data["slug"]
@@ -245,6 +250,19 @@ class ModelComponent(ApplicationSession):
             except HTTPError as e:
                 if e.response.status == 400:
                     self.log.error(f"Unable to create room {e.response.json()}")
+
+    async def chat_rooms_for_user(self, runuser_id):
+        """ Retrieve list of rooms for a given runuser """
+        async with aiohttp.ClientSession(auth=BASIC_AUTH) as session:
+            async with session.post(
+                CHAT_FOR_USER_URL, data={"runuser": runuser_id}
+            ) as response:
+                if response.status == 200:
+                    rooms = await response.text()
+                    return rooms
+                else:
+                    self.log.info(f"CHAT USER ROOMS FAILED content={rooms} runuser_id={runuser_id}")
+                    return {"error": True}
 
     async def chat_check_user(self, room_slug, authid):
         """ Check if a user is allowed to subscribe to a room """
@@ -322,6 +340,8 @@ class ModelComponent(ApplicationSession):
         ###########################################################
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.create_room")
         await self.register(self.chat_create_room, f"{conf.ROOT_TOPIC}.chat.create_room")
+        self.log.info(f"Register {conf.ROOT_TOPIC}.chat.rooms_for_user")
+        await self.register(self.chat_rooms_for_user, f"{conf.ROOT_TOPIC}.chat.rooms_for_user")
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.check_user")
         await self.register(self.chat_check_user, f"{conf.ROOT_TOPIC}.chat.check_user")
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.add_user")
