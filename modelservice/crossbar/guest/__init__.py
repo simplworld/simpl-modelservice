@@ -105,6 +105,12 @@ class ModelComponent(ApplicationSession):
         self.log.info(f"AUTHORIZE CALL uri={uri} action={action}")
 
         ################################################
+        # Handle users getting their initial scopes
+        ################################################
+        if uri.startswith(f"{conf.ROOT_TOPIC}.init_user_scopes"):
+            return {"allow": True, "cache": True, "disclose": True}
+
+        ################################################
         # Handle chat related operations authorization
         ################################################
         if uri.startswith(f"{conf.ROOT_TOPIC}.chat."):
@@ -231,6 +237,40 @@ class ModelComponent(ApplicationSession):
         self.log.info(f"AUTHORIZATION DENY authid={authid} uri={uri}")
         return {"allow": False, "cache": False, "disclose": True}
 
+    async def init_user_scopes(self, details):
+        """ Retrieve the user's scopes for this game """
+        is_leader = False
+        runs = set()
+        worlds = set()
+        runusers = set()
+
+        for game_run in self.games[0].runs:
+            try:
+                runuser = game_run.runusers.get(email=details.caller_authid)
+                if runuser.json["leader"] is True:
+                    is_leader = True
+
+                if is_leader:
+                    runs.add(game_run.pk)
+                else:
+                    runusers.add(runuser.json["id"])
+                    if runuser.json["world"]:
+                        worlds.add(runuser.json["world"])
+            except ScopeNotFound:
+                continue
+
+        # Build topics
+        topics = []
+
+        if is_leader:
+            topics = [f"model:model.run.{x}" for x in runs]
+        else:
+            topics.extend([f"model:model.runuser.{x}" for x in runusers])
+            topics.extend([f"model:model.world.{x}" for x in worlds])
+
+        self.log.info(f"TOPICS for authid={details.caller_authid} is_leader={is_leader} topics={topics}")
+        return(topics, is_leader)
+
     async def chat_create_room(self, room_data):
         """ Create a room """
         payload = {
@@ -334,6 +374,9 @@ class ModelComponent(ApplicationSession):
         self.log.info("Register authorization as 'world.simpl.authorize'")
 
         self.define(FormError)
+
+        # User scopes
+        await self.register(self.init_user_scopes, f"{conf.ROOT_TOPIC}.init_user_scopes", RegisterOptions(details_arg='details'))
 
         ###########################################################
         # Setup chat RPC methods
