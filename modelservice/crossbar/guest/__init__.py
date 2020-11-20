@@ -13,6 +13,7 @@ from genericclient_base.exceptions import HTTPError
 
 from modelservice import conf
 
+from modelservice.auth import validate_external_auth
 from modelservice.games.scopes.exceptions import FormError, ScopeNotFound
 from modelservice.callees import registry as callee_registry
 from modelservice.games import registry as game_registry
@@ -72,17 +73,32 @@ class ModelComponent(ApplicationSession):
         """ Authenticator a user against the Simpl Games API """
         url = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/authcheck/")
 
+        # Determine if we need to use external auth or if we should authenticate
+        # this user directly against the simpl-games-api
+        password = details["ticket"]
+        if password.startswith("::simpl-external-auth::"):
+            authenticated = validate_external_auth(authid, password)
+
+            if authenticated:
+                self.log.info(f"EXTERNAL AUTH SUCCESSFUL realm={realm} authid={authid}")
+                return {"secret": password, "role": "browser"}
+            else:
+                self.log.info(f"EXTERNAL AUTH FAILED realm={realm} authid={authid} auth-url={url}")
+                return {
+                    "secret": f"{random.random()}{details['ticket']}{random.random()}"
+                }
+
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                url, data={"email": authid, "password": details["ticket"]}
+                url, data={"email": authid, "password": password}
             ) as response:
                 if response.status == 200:
                     self.log.info(f"AUTH SUCCESSFUL realm={realm} authid={authid}")
-                    return {"secret": details["ticket"], "role": "browser"}
+                    return {"secret": password, "role": "browser"}
                 else:
                     self.log.info(f"AUTH FAILED realm={realm} authid={authid} auth-url={url}")
                     return {
-                        "secret": f"{random.random()}{details['ticket']}{random.random()}"
+                        "secret": f"{random.random()}{password}{random.random()}"
                     }
 
     def _is_authid_leader(self, authid):

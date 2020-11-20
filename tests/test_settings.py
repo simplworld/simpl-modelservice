@@ -14,3 +14,4 @@ SIMPL_GAMES_AUTH = ("test", "test")
 ROOT_TOPIC = "com.example"
 MODEL_TICKET = "fake-ticket"
 
+EXTERNAL_AUTH_SHARED_SECRET = "testing-secret"
