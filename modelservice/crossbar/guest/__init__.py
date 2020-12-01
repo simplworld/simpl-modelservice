@@ -24,16 +24,20 @@ from modelservice.utils.strings import no_format
 
 # Avoid building a few common things repeatedly
 BASIC_AUTH = aiohttp.BasicAuth(
-    login=conf.SIMPL_GAMES_AUTH[0],
-    password=conf.SIMPL_GAMES_AUTH[1],
-    encoding="utf-8",
+    login=conf.SIMPL_GAMES_AUTH[0], password=conf.SIMPL_GAMES_AUTH[1], encoding="utf-8"
 )
 
 CHAT_FOR_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/for_user/")
-CHAT_CHECK_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/check_user/")
+CHAT_CHECK_USER_URL = urllib.parse.urljoin(
+    conf.SIMPL_GAMES_URL, "/apis/rooms/check_user/"
+)
 CHAT_ADD_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/add_user/")
-CHAT_REMOVE_USER_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/rooms/remove_user/")
-CHAT_POST_MESSAGE_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/messages/post_message/")
+CHAT_REMOVE_USER_URL = urllib.parse.urljoin(
+    conf.SIMPL_GAMES_URL, "/apis/rooms/remove_user/"
+)
+CHAT_POST_MESSAGE_URL = urllib.parse.urljoin(
+    conf.SIMPL_GAMES_URL, "/apis/messages/post_message/"
+)
 
 
 class ModelComponent(ApplicationSession):
@@ -83,7 +87,9 @@ class ModelComponent(ApplicationSession):
                 self.log.info(f"EXTERNAL AUTH SUCCESSFUL realm={realm} authid={authid}")
                 return {"secret": password, "role": "browser"}
             else:
-                self.log.info(f"EXTERNAL AUTH FAILED realm={realm} authid={authid} auth-url={url}")
+                self.log.info(
+                    f"EXTERNAL AUTH FAILED realm={realm} authid={authid} auth-url={url}"
+                )
                 return {
                     "secret": f"{random.random()}{details['ticket']}{random.random()}"
                 }
@@ -96,10 +102,10 @@ class ModelComponent(ApplicationSession):
                     self.log.info(f"AUTH SUCCESSFUL realm={realm} authid={authid}")
                     return {"secret": password, "role": "browser"}
                 else:
-                    self.log.info(f"AUTH FAILED realm={realm} authid={authid} auth-url={url}")
-                    return {
-                        "secret": f"{random.random()}{password}{random.random()}"
-                    }
+                    self.log.info(
+                        f"AUTH FAILED realm={realm} authid={authid} auth-url={url}"
+                    )
+                    return {"secret": f"{random.random()}{password}{random.random()}"}
 
     def _is_authid_leader(self, authid):
         for game_run in self.games[0].runs:
@@ -139,7 +145,12 @@ class ModelComponent(ApplicationSession):
             base = uri.replace(f"{conf.ROOT_TOPIC}.chat.", "")
 
             is_leader = self._is_authid_leader(authid)
-            if base == "create_room" or base == "add_user" or base == "remove_user" or "check_user":
+            if (
+                base == "create_room"
+                or base == "add_user"
+                or base == "remove_user"
+                or "check_user"
+            ):
 
                 if not is_leader:
                     self.log.info(f"Non-leader attempting to modify chat rooms")
@@ -275,11 +286,6 @@ class ModelComponent(ApplicationSession):
                 if runuser.json["leader"] is True:
                     is_leader = True
 
-                run_rooms = await self.chat_rooms_for_user(runuser_id)
-                if run_rooms:
-                    for room in run_rooms:
-                        rooms.add(room["slug"])
-
                 if is_leader:
                     runs.add(game_run.pk)
                 else:
@@ -290,7 +296,7 @@ class ModelComponent(ApplicationSession):
                 continue
 
         # Build topics
-        topics = [f"model:chat.{x}" for x in rooms]
+        topics = []
 
         if is_leader:
             topics.extend([f"model:model.run.{x}" for x in runs])
@@ -298,8 +304,10 @@ class ModelComponent(ApplicationSession):
             topics.extend([f"model:model.runuser.{x}" for x in runusers])
             topics.extend([f"model:model.world.{x}" for x in worlds])
 
-        self.log.info(f"TOPICS for authid={details.caller_authid} is_leader={is_leader} topics={topics}")
-        return(topics, is_leader)
+        self.log.info(
+            f"TOPICS for authid={details.caller_authid} is_leader={is_leader} topics={topics}"
+        )
+        return (topics, is_leader)
 
     async def chat_create_room(self, room_data):
         """ Create a room """
@@ -331,7 +339,9 @@ class ModelComponent(ApplicationSession):
                     rooms = await response.json()
                     return rooms
                 else:
-                    self.log.info(f"CHAT USER ROOMS FAILED content={rooms} runuser_id={runuser_id}")
+                    self.log.info(
+                        f"CHAT USER ROOMS FAILED content={rooms} runuser_id={runuser_id}"
+                    )
                     return {"error": True}
 
     async def chat_check_user(self, room_slug, authid):
@@ -341,10 +351,14 @@ class ModelComponent(ApplicationSession):
                 CHAT_CHECK_USER_URL, data={"email": authid, "room": room_slug}
             ) as response:
                 if response.status == 200:
-                    self.log.info(f"CHAT USER CHECK SUCCESSFUL room={room_slug} authid={authid}")
+                    self.log.info(
+                        f"CHAT USER CHECK SUCCESSFUL room={room_slug} authid={authid}"
+                    )
                     return {"allowed": True}
                 else:
-                    self.log.info(f"CHAT USER CHECK FAILED room={room_slug} authid={authid}")
+                    self.log.info(
+                        f"CHAT USER CHECK FAILED room={room_slug} authid={authid}"
+                    )
                     return {"allowed": False}
 
     async def chat_add_user(self, room_slug, runuser_id):
@@ -354,24 +368,31 @@ class ModelComponent(ApplicationSession):
                 CHAT_CHECK_USER_URL, data={"runuser": runuser_id, "room": room_slug}
             ) as response:
                 if response.status == 200:
-                    self.log.info(f"CHAT ADD USER SUCCESSFUL room={room_slug} runuser_id={runuser_id}")
+                    self.log.info(
+                        f"CHAT ADD USER SUCCESSFUL room={room_slug} runuser_id={runuser_id}"
+                    )
                     return {"allowed": True}
                 else:
-                    self.log.info(f"CHAT ADD USER FAILED room={room_slug} runuser_id={runuser_id}")
+                    self.log.info(
+                        f"CHAT ADD USER FAILED room={room_slug} runuser_id={runuser_id}"
+                    )
                     return {"allowed": False}
 
     async def chat_remove_user(self, room_slug, runuser_id):
         """ Remove a user from a room """
         async with aiohttp.ClientSession(auth=BASIC_AUTH) as session:
             async with session.post(
-                CHAT_REMOVE_USER_URL,
-                data={"runuser": runuser_id, "room": room_slug}
+                CHAT_REMOVE_USER_URL, data={"runuser": runuser_id, "room": room_slug}
             ) as response:
                 if response.status == 200:
-                    self.log.info(f"CHAT REMOVE USER SUCCESSFUL room={room_slug} runuser_id={runuser_id}")
+                    self.log.info(
+                        f"CHAT REMOVE USER SUCCESSFUL room={room_slug} runuser_id={runuser_id}"
+                    )
                     return {"allowed": True}
                 else:
-                    self.log.info(f"CHAT REMOVE USER FAILED room={room_slug} runuser_id={runuser_id}")
+                    self.log.info(
+                        f"CHAT REMOVE USER FAILED room={room_slug} runuser_id={runuser_id}"
+                    )
                     return {"allowed": False}
 
     async def chat_post_message(self, room_slug, authid, data):
@@ -379,7 +400,7 @@ class ModelComponent(ApplicationSession):
         async with aiohttp.ClientSession(auth=BASIC_AUTH) as session:
             async with session.post(
                 CHAT_POST_MESSAGE_URL,
-                data={"sender": authid, "room": room_slug, "data": json.dumps(data)}
+                data={"sender": authid, "room": room_slug, "data": json.dumps(data)},
             ) as response:
                 content = await response.text()
                 if response.status == 200:
@@ -406,23 +427,35 @@ class ModelComponent(ApplicationSession):
         self.define(FormError)
 
         # User scopes
-        await self.register(self.init_user_scopes, f"{conf.ROOT_TOPIC}.init_user_scopes", RegisterOptions(details_arg='details'))
+        await self.register(
+            self.init_user_scopes,
+            f"{conf.ROOT_TOPIC}.init_user_scopes",
+            RegisterOptions(details_arg="details"),
+        )
 
         ###########################################################
         # Setup chat RPC methods
         ###########################################################
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.create_room")
-        await self.register(self.chat_create_room, f"{conf.ROOT_TOPIC}.chat.create_room")
+        await self.register(
+            self.chat_create_room, f"{conf.ROOT_TOPIC}.chat.create_room"
+        )
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.rooms_for_user")
-        await self.register(self.chat_rooms_for_user, f"{conf.ROOT_TOPIC}.chat.rooms_for_user")
+        await self.register(
+            self.chat_rooms_for_user, f"{conf.ROOT_TOPIC}.chat.rooms_for_user"
+        )
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.check_user")
         await self.register(self.chat_check_user, f"{conf.ROOT_TOPIC}.chat.check_user")
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.add_user")
         await self.register(self.chat_add_user, f"{conf.ROOT_TOPIC}.chat.add_user")
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.remove_user")
-        await self.register(self.chat_remove_user, f"{conf.ROOT_TOPIC}.chat.remove_user")
+        await self.register(
+            self.chat_remove_user, f"{conf.ROOT_TOPIC}.chat.remove_user"
+        )
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.post_message")
-        await self.register(self.chat_post_message, f"{conf.ROOT_TOPIC}.chat.post_message")
+        await self.register(
+            self.chat_post_message, f"{conf.ROOT_TOPIC}.chat.post_message"
+        )
         self.log.info("Chat RPC methods registered")
 
         for game_name, GameClass in game_registry._registry.items():
