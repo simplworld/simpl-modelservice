@@ -127,6 +127,12 @@ class ModelComponent(ApplicationSession):
             return {"allow": True, "cache": True, "disclose": True}
 
         ################################################
+        # Handle user's own error scope
+        ################################################
+        if uri.startswith(f"{conf.ROOT_TOPIC}.error.{authid}"):
+            return {"allow": True, "cache": True, "disclose": True}
+
+        ################################################
         # Handle chat related operations authorization
         ################################################
         if uri.startswith(f"{conf.ROOT_TOPIC}.chat."):
