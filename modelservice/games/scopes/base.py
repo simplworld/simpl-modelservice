@@ -416,12 +416,13 @@ class WampScope(ScopeMixin, SessionScope):
         runusers = []
         user = kwargs['user']
         for ru in self.my.get_runusers(user.runuser.leader):
-            payload = {}
-            payload['data'] = ru.json
-            payload['data']['online'] = ru.pk in self.online_runusers
-            payload['pk'] = ru.pk
-            payload['resource_name'] = 'runuser'
-            runusers.append(payload)
+            if not excludePlayers or ru.json.leader is True:
+                payload = {}
+                payload['data'] = ru.json
+                payload['data']['online'] = ru.pk in self.online_runusers
+                payload['pk'] = ru.pk
+                payload['resource_name'] = 'runuser'
+                runusers.append(payload)
         return runusers
 
     def get_initial_json(self):
