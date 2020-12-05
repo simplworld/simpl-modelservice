@@ -412,7 +412,7 @@ class WampScope(ScopeMixin, SessionScope):
         return self.json
 
     @register
-    def get_active_runusers(self, *args, **kwargs):
+    def get_active_runusers(self, excludePlayers=False, *args, **kwargs):
         runusers = []
         user = kwargs['user']
         for ru in self.my.get_runusers(user.runuser.leader):
