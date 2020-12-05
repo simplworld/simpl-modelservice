@@ -416,7 +416,7 @@ class WampScope(ScopeMixin, SessionScope):
         runusers = []
         user = kwargs['user']
         for ru in self.my.get_runusers(user.runuser.leader):
-            if not excludePlayers or ru.json.leader is True:
+            if not excludePlayers or ru.leader is True:
                 payload = {}
                 payload['data'] = ru.json
                 payload['data']['online'] = ru.pk in self.online_runusers
