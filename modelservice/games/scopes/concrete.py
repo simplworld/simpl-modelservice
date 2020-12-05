@@ -261,6 +261,20 @@ class Run(Scope):
                      scope.resource_name,
                      scope.json)
 
+    @register
+    async def get_run_data(self, *args, **kwargs):
+        """
+        Returns run's worlds and runusers
+        """
+        self.log.info('get_run_data: {name} pk: {pk}', name=self.resource_name, pk=self.pk)
+
+        data_tree = await self.get_scope_tree(None, *args, **kwargs)
+        runusers = await self.get_active_runusers(False, *args, **kwargs)
+        data = {}
+        data['data_tree'] = data_tree
+        data['runusers'] = runusers
+        return data
+
     def update_pubsub(self):
         """
         Propagate update down to child worlds and runusers, so they
