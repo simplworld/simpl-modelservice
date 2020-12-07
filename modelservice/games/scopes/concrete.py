@@ -270,10 +270,8 @@ class Run(Scope):
 
         data_tree = await self.get_scope_tree(None, *args, **kwargs)
         runusers = await self.get_active_runusers(False, *args, **kwargs)
-        data = {}
-        data['data_tree'] = data_tree
-        data['runusers'] = runusers
-        return data
+        data_tree['runusers'] = runusers
+        return data_tree
 
     def update_pubsub(self):
         """
