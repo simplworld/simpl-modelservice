@@ -269,8 +269,17 @@ class Run(Scope):
         self.log.info('get_run_data: {name} pk: {pk}', name=self.resource_name, pk=self.pk)
 
         data_tree = await self.get_scope_tree(None, *args, **kwargs)
-        runusers = await self.get_active_runusers(False, *args, **kwargs)
-        data_tree['runusers'] = runusers
+        active_runusers = await self.get_active_runusers(False, *args, **kwargs)
+        data_tree['runusers'] = active_runusers
+        player_scenarios = []
+        for runuser in self.runusers:
+            if runuser.leader is False:
+                scenarios = [
+                    scope._scope_tree(*args, **kwargs)
+                    for scope in runuser.scenarios
+                ]
+                player_scenarios.extend(scenarios)
+        data_tree['player_scenarios'] = player_scenarios
         return data_tree
 
     def update_pubsub(self):
