@@ -1,7 +1,7 @@
 import os
 from setuptools import setup, find_packages
 
-VERSION = '0.9.0'
+VERSION = '0.9.1'
 
 with open(os.path.join(os.path.dirname(__file__), 'README.md')) as f:
     readme = f.read()
