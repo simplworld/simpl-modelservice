@@ -38,6 +38,7 @@ CHAT_REMOVE_USER_URL = urllib.parse.urljoin(
 CHAT_POST_MESSAGE_URL = urllib.parse.urljoin(
     conf.SIMPL_GAMES_URL, "/apis/messages/post_message/"
 )
+CHAT_LOAD_MESSAGES_URL = urllib.parse.urljoin(conf.SIMPL_GAMES_URL, "/apis/messages/")
 
 
 class ModelComponent(ApplicationSession):
@@ -159,6 +160,10 @@ class ModelComponent(ApplicationSession):
                 return {"allow": True, "cache": True, "disclose": True}
 
             if base == "rooms_for_user":
+                return {"allow": True, "cache": True, "disclose": True}
+
+            # We check authorization for the user in the room inside this method
+            if base == "load_messages":
                 return {"allow": True, "cache": True, "disclose": True}
 
             # Allow users in a chat room to subscribe to the pubsub channel, but
@@ -410,6 +415,27 @@ class ModelComponent(ApplicationSession):
                     self.log.info(f"CHAT POST ERROR {content}")
                     return {"posted": False}
 
+    async def chat_load_messages(self, room_slug, authid):
+        """ Post a message to a room """
+        # See if user is allowed to load messages
+        result = await self.chat_check_user(room_slug, authid)
+
+        # If they are allowed to get these messages, grab them and return them
+        if result["allowed"]:
+            async with aiohttp.ClientSession(auth=BASIC_AUTH) as session:
+                url = f"{CHAT_LOAD_MESSAGES_URL}?room_slug={room_slug}"
+                self.log.info(f"CHAT LOAD URL {url}")
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        content = await response.json()
+                        return content
+                    else:
+                        content = await response.text()
+                        self.log.info(f"CHAT LOAD MESSAGES ERROR {content}")
+                        return {}
+        else:
+            self.log.info(f"CHAT LOAD MESSAGES FOR INCORRECT ROOM {authid} {room_slug}")
+
     async def onJoin(self, details):
         self.log.info("session joined")
         # can do subscribes, registers here e.g.:
@@ -455,6 +481,10 @@ class ModelComponent(ApplicationSession):
         self.log.info(f"Register {conf.ROOT_TOPIC}.chat.post_message")
         await self.register(
             self.chat_post_message, f"{conf.ROOT_TOPIC}.chat.post_message"
+        )
+        self.log.info(f"Register {conf.ROOT_TOPIC}.chat.load_messages")
+        await self.register(
+            self.chat_load_messages, f"{conf.ROOT_TOPIC}.chat.load_messages"
         )
         self.log.info("Chat RPC methods registered")
 
