@@ -407,11 +407,13 @@ class ModelComponent(ApplicationSession):
                 CHAT_POST_MESSAGE_URL,
                 data={"sender": authid, "room": room_slug, "data": json.dumps(data)},
             ) as response:
-                content = await response.text()
                 if response.status == 200:
+                    content = await response.json()
+                    data["id"] = content["id"]
                     self.publish(f"{conf.ROOT_TOPIC}.chat.room.{room_slug}", data)
                     return {"posted": True}
                 else:
+                    content = await response.text()
                     self.log.info(f"CHAT POST ERROR {content}")
                     return {"posted": False}
 
