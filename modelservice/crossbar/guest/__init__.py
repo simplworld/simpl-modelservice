@@ -409,9 +409,8 @@ class ModelComponent(ApplicationSession):
             ) as response:
                 if response.status == 200:
                     content = await response.json()
-                    data["id"] = content["id"]
-                    self.publish(f"{conf.ROOT_TOPIC}.chat.room.{room_slug}", data)
-                    return {"posted": True}
+                    self.publish(f"{conf.ROOT_TOPIC}.chat.room.{room_slug}", content)
+                    return content
                 else:
                     content = await response.text()
                     self.log.info(f"CHAT POST ERROR {content}")
