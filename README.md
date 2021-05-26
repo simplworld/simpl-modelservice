@@ -135,57 +135,9 @@ You can then call:
 $ profile.sh -u myusers.txt
 ```
 
-And it will spawn 3 workers, each of one set up to `.call` and `.publish` as that one of those users.
+And it will spawn 3 workers, each one set up to `.call` and `.publish` as one of those users.
 
-To run from any model directory when logged into an AWS instance, call:
- ```bash
-$ aws_profile.sh -u myusers.txt
-```
-
-Both `profile.sh` and `aws_profile.sh` invoke the `profile` management command.
-
-#### Managing the Modelservice AWS Profiler instance
-
-##### Django settings
-
-  * `PROFILER_AWS_KEY`: the AWS IAM access key
-  * `PROFILER_AWS_SEC`: the associated IAM secret key
-
-##### Management commands
-
-Management of the AWS profiler instance is performed by way of the `aws_profiler` management command.
-
-###### status
-
-```
-
-:# ./manage.py aws_profiler --status
-
-i-0733d74785931f857: stopped -- type: c5.18xlarge -- ip address: 18.216.171.181
-
-```
-
-
-###### start
-
-```
-
-:# ./manage.py aws_profiler --start
-
-i-0733d74785931f857: pending -- type: c5.18xlarge -- ip address: 18.216.171.181
-
-```
-
-
-###### stop
-
-```
-
-:# ./manage.py aws_profiler --stop
-
-i-0733d74785931f857: stopping -- type: c5.18xlarge -- ip address: 18.216.171.181
-
-```
+The `profile.sh` script invokes the `profile` management command.
 
 Copyright © 2018 The Wharton School,  The University of Pennsylvania 
 
