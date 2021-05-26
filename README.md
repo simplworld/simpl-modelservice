@@ -135,7 +135,7 @@ You can then call:
 $ profile.sh -u myusers.txt
 ```
 
-And it will spawn 3 workers, each one set up to `.call` and `.publish` as one of those users.
+This will spawn 3 workers, each one set up to `.call` and `.publish` as one of those users.
 
 The `profile.sh` script invokes the `profile` management command.
 
