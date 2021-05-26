@@ -92,15 +92,16 @@ class ProfileCase(unittest.TestCase):
             kwargs['user_email'] = self.user_email
         return await self.wamp.call(uri, *args, **kwargs)
 
-    async def call_as(self, user_email: str, uri: str, *args, **kwargs):
+    async def call_as(self, user_email: str,  user_password: str, uri: str, *args, **kwargs):
         """
         Calls an RPC procedure on the modelservice as a specific user.
 
         Example::
 
-            self.call_as('s1@calc.edu', 'world.simpl.sims.simpl-calc.model.game.hello_world')
+            self.call_as('s1@calc.edu', 's1', 'world.simpl.sims.simpl-calc.model.game.hello_world')
 
         :param user_email: the email identifying the user
+        :param user_password: the password identifying the user
         :param uri: the WAMP URI of the RPC
         :param args: arguments for the RPC
         :param kwargs: keyword arguments for the RPC
@@ -128,15 +129,16 @@ class ProfileCase(unittest.TestCase):
             kwargs['user_email'] = self.user_email
         return self.wamp.publish(topic, *args, **kwargs)
 
-    def publish_as(self, user_email: str, topic: str, *args, **kwargs):
+    def publish_as(self, user_email: str, user_password: str, topic: str, *args, **kwargs):
         """
         Publishes to a topic on the modelservice as a specific user.
 
         Example::
 
-            self.publish_as('s1@calc.edu', 'world.simpl.sims.simpl-calc.model.game.hello_world')
+            self.publish_as('s1@calc.edu', 's1', 'world.simpl.sims.simpl-calc.model.game.hello_world')
 
         :param user_email: the email identifying the user
+        :param user_password: the password identifying the user
         :param topic: the WAMP topic to publish to
         :param args: arguments to be published
         :param kwargs: keyword arguments to be published
