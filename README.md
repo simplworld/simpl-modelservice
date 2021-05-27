@@ -119,8 +119,6 @@ call `aws_profile.sh`. You can use `aws_profile.sh -h` for a list of options.
 
 ### Running the profiler with users
 
-#### Profile users
-
 You can have workers that publish and call on WAMP as specific users. Using the `.call()` or `.publish()` methods, 
 it can call or publish as the user associated with that worker. 
 
