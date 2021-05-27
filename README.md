@@ -79,12 +79,6 @@ The profiler will run any method that starts with `profile_` one or more times a
 
 Keep in mind that, unlike unit tests, profile tasks are not isolated.
 
-#### Profile users
-
-You can have workers that publish and call on WAMP as specific users. By using the `.call()` or `.publish()` method, 
-it will call or publish as the user associated to that worker. To learn how to run workers associated to users, 
-see [Running the profiler with users](#running-profile-users).
-
 #### Measuring
 
 The `modelservice.utils.instruments` contains classes for measuring execution times. Check the module's docstrings for details.
@@ -117,7 +111,7 @@ are aliased as properties (ie: `.mean`, `.stdev`, etc.).
 1. From a model service directory, run its server.
 1. From the same model service directory, call `profile.sh`. You can use `profile.sh -h` for a list of options.
 
-Some example anonymous profiling tasks are defined in `modelservice/profiles`. These are the tasks that run
+Some example anonymous profiling tasks are defined in `modelservice/profiles`. These tasks are run
 unless you use the `-m` option to specify a different module path.
 
 To run from a model service directory when logged into an AWS instance, 
@@ -125,7 +119,12 @@ call `aws_profile.sh`. You can use `aws_profile.sh -h` for a list of options.
 
 ### Running the profiler with users
 
-You can have the profiler spawn workers as specific users by passing a file with their emails using the `-u` option.
+#### Profile users
+
+You can have workers that publish and call on WAMP as specific users. Using the `.call()` or `.publish()` methods, 
+it can call or publish as the user associated with that worker. 
+
+You have the profiler spawn workers as specific users by passing a file with their emails using the `-u` option.
 
 Assuming you have a file called `myusers.txt` with the following content:
 
