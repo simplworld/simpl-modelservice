@@ -75,15 +75,15 @@ It's sometimes useful to run [crossbar](https://github.com/crossbario/crossbar/)
 
 ### Writing tasks
 
-Profiling tasks are defined in `modelservice/profiles`.
-
 The profiler will run any method that starts with `profile_` one or more times against a different number of workers.
 
 Keep in mind that, unlike unit tests, profile tasks are not isolated.
 
 #### Profile users
 
-You can have workers that publish and call on WAMP as specific users. By using the `.call()` or `.publish()` method, it will call or publish as the user associated to that worker. To learn how to run workers associated to users, see [Running profile users](#running-profile-users).
+You can have workers that publish and call on WAMP as specific users. By using the `.call()` or `.publish()` method, 
+it will call or publish as the user associated to that worker. To learn how to run workers associated to users, 
+see [Running the profiler with users](#running-profile-users).
 
 #### Measuring
 
@@ -91,7 +91,7 @@ The `modelservice.utils.instruments` contains classes for measuring execution ti
 
 #### Collecting results
 
-You can collect the result of task by calling the `.publish_stat()` method:
+You can collect the result of the task by calling the `.publish_stat()` method:
 
 ```
     async def profile_random(self):
@@ -100,24 +100,30 @@ You can collect the result of task by calling the `.publish_stat()` method:
         self.publish_stat('<unique stat name>', timer.elapsed, fmt='Average result was {stats.mean:.3f}')
 ```
 
-The `fmt` string will receive an `instruments.StatAggregator` instance called `stats`. This object will collect the value from all workers that ran the task and will provide the following properties:
+The `fmt` string will receive an `instruments.StatAggregator` instance called `stats`. 
+This object will collect the value from all workers that ran the task and will provide the following properties:
 
 * `.min`: The lowest collected value
 * `.max`: The highest collected value
 * `.total`: The sum of the collected values
 * `.count`: The number of collected values
 
-Additionally, functions from the [`statistics` module](https://docs.python.org/3/library/statistics.html) are aliased as properties (ie: `.mean`, `.stdev`, etc.).
+Additionally, functions from the [`statistics` module](https://docs.python.org/3/library/statistics.html) 
+are aliased as properties (ie: `.mean`, `.stdev`, etc.).
 
 ### Running the profiler anonymously
 
-1. Run `simpl-games-api` and its modelservice
-1. From any model, run its modelservice via `run_modelservice` or `run_guest`
-1. From the same model directory, call `profile.sh`. You can use `profile.sh -h` for a list of options.
+1. Run the `simpl-games-api` server. 
+1. From a model service directory, run its server.
+1. From the same model service directory, call `profile.sh`. You can use `profile.sh -h` for a list of options.
 
-To run any model directory when logged into an AWS instance, call `aws_profile.sh`. You can use `aws_profile.sh -h` for a list of options.
+Some example anonymous profiling tasks are defined in `modelservice/profiles`. These are the tasks that run
+unless you use the `-m` option to specify a different module path.
 
-#### Running profile users
+To run from a model service directory when logged into an AWS instance, 
+call `aws_profile.sh`. You can use `aws_profile.sh -h` for a list of options.
+
+### Running the profiler with users
 
 You can have the profiler spawn workers as specific users by passing a file with their emails using the `-u` option.
 
@@ -129,15 +135,23 @@ s2@mysim.edu
 s3@mysim.edu
 ```
 
+You will also need to use the `-m` option to specify your task's module path (e.g `my_task_module_path`).
+
 You can then call:
 
 ```bash
-$ profile.sh -u myusers.txt
+$ profile.sh -m my_task_module_path -u myusers.txt
 ```
 
 This will spawn 3 workers, each one set up to `.call` and `.publish` as one of those users.
 
-The `profile.sh` script invokes the `profile` management command.
+To run from a model service directory when logged into an AWS instance, call:
+ ```bash
+$ aws_profile.sh -m my_task_module_path -u myusers.txt
+```
+
+Both `profile.sh` and `aws_profile.sh` invoke the `profile` management command.
+
 
 Copyright © 2018 The Wharton School,  The University of Pennsylvania 
 
