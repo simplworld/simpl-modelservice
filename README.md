@@ -124,6 +124,8 @@ it can call or publish as the user associated with that worker.
 
 You have the profiler spawn workers as specific users by passing a file with their emails using the `-u` option.
 
+You will also need to use the `-m` option to specify your task's module path (e.g `my_task_module_path`).
+
 Assuming you have a file called `myusers.txt` with the following content:
 
 ```text
@@ -131,8 +133,6 @@ s1@mysim.edu
 s2@mysim.edu
 s3@mysim.edu
 ```
-
-You will also need to use the `-m` option to specify your task's module path (e.g `my_task_module_path`).
 
 You can then call:
 
