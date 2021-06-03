@@ -41,8 +41,6 @@ setup(
         "crossbar==17.10.1",
         "django-markup==1.2",
         "django-click==2.1.0",
-        "boto3==1.5.28",
-        "botocore==1.8.42",
         "thorn",
         "twisted==20.3.0"
     ],
