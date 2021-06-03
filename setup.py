@@ -36,7 +36,7 @@ setup(
         "aiorwlock",
         "aiojobs==0.2.1",
         "attrs>=17.4.0",
-        "autobahn==17.10.1",
+        "autobahn==20.12.3",
         "click==6.7",
         "crossbar==17.10.1",
         "django-markup==1.2",
