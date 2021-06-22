@@ -194,13 +194,17 @@ class ModelComponent(ApplicationSession):
         if resource_name == "game":
             if parts[1] == "get_phases" or parts[1] == "get_roles":
                 return {"allow": True, "cache": True, "disclose": True}
+            elif action == "call":
+            # TODO Disallow game level call actions unless user is staff
+            # For now, allow anyone to access Game level RPCs
+                return {"allow": True, "cache": True, "disclose": True}
 
         try:
             pk = int(parts[1])
         except ValueError:
             pk = None
 
-        # Disallow register actions
+        # Disallow register actions across the board
         if action == "register":
             self.log.info(
                 f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
