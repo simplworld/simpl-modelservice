@@ -192,12 +192,18 @@ class ModelComponent(ApplicationSession):
         resource_name = parts[0]
 
         if resource_name == "game":
-            if parts[1] == "get_phases" or parts[1] == "get_roles":
-                return {"allow": True, "cache": True, "disclose": True}
-            elif action == "call":
-            # TODO Disallow game level call actions unless user is staff
-            # For now, allow anyone to access Game level RPCs
-                return {"allow": True, "cache": True, "disclose": True}
+            if action == "call":
+                # Disallow access to most public Game level RPCs
+                func = parts[1]
+                DENIED = ["get_scope_tree", "get_active_runusers", "get_current_run_and_phase", "list_scopes"]
+                if func in DENIED:
+                    self.log.info(
+                        f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
+                    )
+                    return {"allow": False, "cache": True, "disclose": True}
+                else:
+                    # Allow access to "get_phases", "get_roles", and non-public Game level RPCs
+                    return {"allow": True, "cache": True, "disclose": True}
 
         try:
             pk = int(parts[1])
