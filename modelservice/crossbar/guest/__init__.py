@@ -186,6 +186,13 @@ class ModelComponent(ApplicationSession):
         # Handle the non-chat related Simpl scopes
         ################################################
 
+        # Disallow register actions across the board
+        if action == "register":
+            self.log.info(
+                f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
+            )
+            return {"allow": False, "cache": True, "disclose": True}
+
         # Determine resource and pk of URI
         base = uri.replace(f"{conf.ROOT_TOPIC}.model.", "")
         parts = base.split(".")
@@ -209,13 +216,6 @@ class ModelComponent(ApplicationSession):
             pk = int(parts[1])
         except ValueError:
             pk = None
-
-        # Disallow register actions across the board
-        if action == "register":
-            self.log.info(
-                f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
-            )
-            return {"allow": False, "cache": True, "disclose": True}
 
         # Allow phases and roles always
         if resource_name in ["phase", "role"]:
