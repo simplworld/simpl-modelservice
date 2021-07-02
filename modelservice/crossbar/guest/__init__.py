@@ -186,26 +186,36 @@ class ModelComponent(ApplicationSession):
         # Handle the non-chat related Simpl scopes
         ################################################
 
+        # Disallow register actions across the board
+        if action == "register":
+            self.log.info(
+                f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
+            )
+            return {"allow": False, "cache": True, "disclose": True}
+
         # Determine resource and pk of URI
         base = uri.replace(f"{conf.ROOT_TOPIC}.model.", "")
         parts = base.split(".")
         resource_name = parts[0]
 
         if resource_name == "game":
-            if parts[1] == "get_phases" or parts[1] == "get_roles":
-                return {"allow": True, "cache": True, "disclose": True}
+            if action == "call":
+                # Disallow access to most public Game level RPCs
+                func = parts[1]
+                DENIED = ["get_scope_tree", "get_active_runusers", "get_current_run_and_phase", "list_scopes"]
+                if func in DENIED:
+                    self.log.info(
+                        f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
+                    )
+                    return {"allow": False, "cache": True, "disclose": True}
+                else:
+                    # Allow access to "get_phases", "get_roles", and non-public Game level RPCs
+                    return {"allow": True, "cache": True, "disclose": True}
 
         try:
             pk = int(parts[1])
         except ValueError:
             pk = None
-
-        # Disallow register actions
-        if action == "register":
-            self.log.info(
-                f"AUTHORIZATION DENY authid={authid} uri={uri} action={action}"
-            )
-            return {"allow": False, "cache": True, "disclose": True}
 
         # Allow phases and roles always
         if resource_name in ["phase", "role"]:
