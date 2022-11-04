@@ -42,7 +42,7 @@ setup(
         "django-markup==1.2",
         "django-click==2.1.0",
         "thorn",
-        "twisted==20.3.0"
+        "twisted==22.10.0"
     ],
     dependency_links=[
         "thorn==https://github.com/robinhood/thorn.git@486a53e",  # compatible with Django 2
